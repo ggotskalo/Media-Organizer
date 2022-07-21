@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/">
+        <file>Qml/main.qml</file>
+        <file>Qml/ThumbsGrid.qml</file>
+        <file>Qml/FavoriteFolders.qml</file>
+        <file>Qml/FavoriteFoldersMenu.qml</file>
+    </qresource>
+</RCC>
