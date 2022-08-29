@@ -17,7 +17,7 @@ struct ThumbData {
     QString filePath;
     Type type;
     QString thumbSource;
-    qint64 size;
+    qint64 size = 0;
     bool noThumb = false;
 };
 

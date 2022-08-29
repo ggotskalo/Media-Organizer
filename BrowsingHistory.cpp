@@ -104,19 +104,28 @@ void BrowsingHistory::goUp(qreal scrollPosition)
     }
     currentPos_->scrollPosition = scrollPosition;
     QVariant v = currentPos_->item;
+    QString currentFolderPath;
     if (v.canConvert<ThumbData>()) {
         ThumbData td = v.value<ThumbData>();
         if (td.type == ThumbData::Folder) {
-            QDir dir(td.filePath);
-            if (dir.cdUp()) {
-                td.filePath = dir.absolutePath();
-                v.setValue(td);
-                history_.insert(currentPos_, {v, scrollPosition});
-                setCurrentPath(td.filePath);
-                lastScrollPosition_ = 0;
-                emit goFile(td);
-                updateEnabledDirections();
-            }
+            currentFolderPath = td.filePath;
+        }
+    } else if (v.canConvert<FavoriteFolderData>()) {
+        FavoriteFolderData ffd = v.value<FavoriteFolderData>();
+        if (ffd.pathes.size() == 1) {
+            currentFolderPath = ffd.pathes.first();
+        }
+    }
+
+    if (!currentFolderPath.isEmpty()) {
+        QDir dir(currentFolderPath);
+        if (dir.cdUp()) {
+            ThumbData td;
+            td.filePath = dir.absolutePath();
+            td.type = ThumbData::Folder;
+            v.setValue(td);
+            fileSelected(td, scrollPosition);
+            emit goFile(td);
         }
     }
 }
