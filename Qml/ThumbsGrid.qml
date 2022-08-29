@@ -7,12 +7,15 @@ GridView {
     signal itemClicked(var index)
     signal itemMiddleClicked(var index)
     signal itemRightClicked(var index)
+    signal removeSelected(var index)
+
     property int thumbWidth: 100
     property int thumbHeigth: 100
     property int gap: 3
     property int selectionBorder: 3
     property int border: 1
     property alias scrollPosition: scroll.position
+
     function showItem(index, newScrollPosition) {
         currentIndex = index
         if (newScrollPosition <= (height - scroll.contentItem.height) / height) {
@@ -62,14 +65,12 @@ GridView {
             }
             source: model.source ? "image://thumb/" + model.source : ""
             cache: false
-
         }
         Text {
             id: fileName
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             height: Math.max(fontInfo.pixelSize + grid.border*2, parent.height - thumb.paintedHeight - grid.border)
-
             anchors{
                 bottom: parent.bottom
                 left: parent.left
@@ -82,6 +83,9 @@ GridView {
             style : Text.Outline
             styleColor: "white"
         }
+        //navigation
+        Keys.onReturnPressed: itemClicked(index)
+        Keys.onSpacePressed: itemClicked(index)
         MouseArea {
             acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
             hoverEnabled: true
@@ -92,12 +96,16 @@ GridView {
                 if (mouse.button == Qt.MiddleButton)
                     itemMiddleClicked(index)
                 if (mouse.button == Qt.RightButton) {
-                    currentIndex = index
-                 //   itemLeftClicked(index)
+                    contextMenu.popup()
+                }
+            }
+            Menu {
+                id: contextMenu
+                MenuItem {
+                    text: qsTr("Remove")
+                    onTriggered: removeSelected(index)
                 }
             }
         }
-
     }
-
 }

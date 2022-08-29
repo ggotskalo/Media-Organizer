@@ -1,8 +1,7 @@
 import QtQuick 2.14
 import QtQuick.Window 2.14
 import QtQuick.Controls 2.14
-import QtQuick.Dialogs 1.2 as Dialogs
-import Qt.labs.platform 1.1
+import Qt.labs.platform 1.1 as Platform
 import Qt.labs.settings 1.0
 
 Window {
@@ -102,6 +101,7 @@ Window {
                             browsingHistory.goForward(grid.scrollPosition)
                         }
                     }
+
                     Label {
                         id: dir
 
@@ -135,7 +135,6 @@ Window {
                             onShowItem: grid.showItem(pos, newScrollPosition)
                             onClearSelection: grid.currentIndex = -1
                     }
-
                     onItemClicked: {
                         grid.currentIndex = index
                         thumbsModel.selectItem(index, scrollPosition)
@@ -144,9 +143,18 @@ Window {
                         grid.currentIndex = index
                         thumbsModel.setItemAsThumb(index)
                     }
+                    onRemoveSelected: {
+                        thumbsModel.removeItem(index)
+                    }
                 }
             }
         }
+        Keys.onPressed: {
+                 if (event.key == Qt.Key_Backspace) {
+                     browsingHistory.goBack(grid.scrollPosition);
+                     event.accepted = true;
+                 }
+             }
         MouseArea {
             anchors.fill: parent
             acceptedButtons: Qt.BackButton | Qt.ForwardButton
@@ -160,47 +168,9 @@ Window {
         }
     }
 
-    FolderDialog {
+    Platform.FolderDialog {
         id: addFolderDialog
         onAccepted: foldersModel.addFolder(folder)
-    }
-
-    FolderDialog {
-        id: uniteFolderDialog
-        property int index
-        onAccepted: foldersModel.uniteWithFolder(index, folder)
-    }
-
-    Dialogs.Dialog {
-        id: inputDialog
-
-        property alias text: input.text
-        property int index
-
-        modality: Qt.WindowModal
-        standardButtons: Dialog.Apply | Dialog.Cancel
-
-        TextInput {
-            id:input
-            anchors.fill:parent
-        }
-
-        onApply: {
-            accept()
-        }
-
-        onAccepted: {
-            foldersModel.renameFolder(index, text)
-            close()
-        }
-
-        onVisibleChanged: {
-            if (visible) input.forceActiveFocus()
-        }
-    }
-
-    FavoriteFoldersMenu {
-        id: foldersMenu
     }
 
     Settings {

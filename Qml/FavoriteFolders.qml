@@ -1,9 +1,6 @@
 import QtQuick 2.14
 import QtQuick.Window 2.14
 import QtQuick.Controls 2.14
-import QtQuick.Dialogs 1.2 as Dialogs
-import Qt.labs.platform 1.1
-import Qt.labs.settings 1.0
 
 ListView {
     signal itemClicked(index: int)
@@ -30,9 +27,13 @@ ListView {
                 if (mouse.button == Qt.RightButton) {
                     foldersMenu.index = index
                     foldersMenu.name = model.name
-                    foldersMenu.open()
+                    foldersMenu.popup()
                 }
             }
         }
+    }    
+
+    FavoriteFoldersMenu {
+        id: foldersMenu
     }
 }

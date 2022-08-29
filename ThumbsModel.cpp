@@ -36,6 +36,25 @@ void ThumbsModel::setItemAsThumb(int index) {
     emit setItemAsThumbSignal(td);
 }
 
+void ThumbsModel::removeItem(int index) {
+    QString path = thumbs_.at(index).filePath;
+    QFileInfo fileInfo(path);
+    bool removed = false;
+    if (fileInfo.isFile()) {
+        QFile file(path);
+        removed = file.remove();
+    } else if (fileInfo.isDir()) {
+        QDir dir(thumbs_.at(index).filePath);
+        removed = dir.removeRecursively();
+    }
+    if (removed) {
+        beginRemoveRows(QModelIndex(), index, index);
+        thumbs_.removeAt(index);
+        endRemoveRows();
+    }
+
+}
+
 QHash<int, QByteArray> ThumbsModel::roleNames() const
 {
     return { {SourceRole, "source"}, {NameRole, "name"}, {SizeRole, "size"},

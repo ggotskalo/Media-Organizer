@@ -2,8 +2,7 @@ import QtQuick 2.14
 import QtQuick.Window 2.14
 import QtQuick.Controls 2.14
 import QtQuick.Dialogs 1.2 as Dialogs
-import Qt.labs.platform 1.1
-import Qt.labs.settings 1.0
+import Qt.labs.platform 1.1 as Platform
 
 Menu {
     id: foldersMenu
@@ -31,5 +30,33 @@ Menu {
     MenuItem {
         text: qsTr("Remove from favorites")
         onTriggered: foldersModel.removeFolder(foldersMenu.index)
+    }
+
+    Platform.FolderDialog {
+        id: uniteFolderDialog
+        property int index
+        onAccepted: foldersModel.uniteWithFolder(index, folder)
+    }
+
+    Dialogs.Dialog {
+        id: inputDialog
+        property alias text: input.text
+        property int index
+        modality: Qt.WindowModal
+        standardButtons: Dialog.Apply | Dialog.Cancel
+        TextInput {
+            id:input
+            anchors.fill:parent
+        }
+        onApply: {
+            accept()
+        }
+        onAccepted: {
+            foldersModel.renameFolder(index, text)
+            close()
+        }
+        onVisibleChanged: {
+            if (visible) input.forceActiveFocus()
+        }
     }
 }
