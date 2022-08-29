@@ -11,7 +11,6 @@
 class BrowsingHistory : public QObject
 {
     Q_OBJECT
-    void addToHistory();
 
 public:
     explicit BrowsingHistory(QObject *parent = nullptr);
