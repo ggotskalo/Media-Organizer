@@ -36,7 +36,6 @@ Window {
 
                     width:parent.width
                     height:toolboxHeight
-                    z:1
 
                     text: qsTr("Add Folder")
 
@@ -64,7 +63,6 @@ Window {
                     id: toolboxRow
                     width: parent.width
                     height: toolboxHeight
-                    z: 1
 
                     Button {
                         width: toolboxButtonWidth
@@ -128,6 +126,7 @@ Window {
 
                     width: parent.width
                     height: parent.height - toolboxHeight
+                    clip: true
 
                     model: thumbsModel
                     Connections {

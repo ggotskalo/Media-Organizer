@@ -39,6 +39,7 @@ GridView {
     highlight:
         Rectangle {
             width: 150
+            //because delegate have z = 1
             z: 2
             color: "transparent"
             border.color: "crimson"
