@@ -1,0 +1,11 @@
+<RCC>
+    <qresource prefix="/">
+        <file>main.qml</file>
+        <file>ThumbsGrid.qml</file>
+        <file>FavoriteFolders.qml</file>
+        <file>FavoriteFoldersMenu.qml</file>
+        <file>Style.qml</file>
+        <file>qmldir</file>
+        <file>BigToolButton.qml</file>
+    </qresource>
+</RCC>

@@ -19,29 +19,29 @@ find_package(QT NAMES Qt6 Qt5 COMPONENTS Core Quick REQUIRED Concurrent)
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core Quick REQUIRED Concurrent)
 
 set(PROJECT_SOURCES
-        main.cpp
-        qml.qrc
+        Src/main.cpp
+        Qml/qml.qrc
 
-        ThumbsProvider.h ThumbsProvider.cpp
+        Src/ThumbsProvider.h Src/ThumbsProvider.cpp
 
-        ThumbsModel.h ThumbsModel.cpp
-        FavoritFoldersModel.h FavoritFoldersModel.cpp
+        Src/ThumbsModel.h Src/ThumbsModel.cpp
+        Src/FavoritFoldersModel.h Src/FavoritFoldersModel.cpp
 
-        DirProcessor.h DirProcessor.cpp
-        ThumbsDiskCacher.h ThumbsDiskCacher.cpp
+        Src/DirProcessor.h Src/DirProcessor.cpp
+        Src/ThumbsDiskCacher.h Src/ThumbsDiskCacher.cpp
 
-        ThumbGenerators/VideoThumbnailGeneratorWin32.h ThumbGenerators/VideoThumbnailGeneratorWin32.cpp
+        Src/ThumbGenerators/VideoThumbnailGeneratorWin32.h Src/ThumbGenerators/VideoThumbnailGeneratorWin32.cpp
 
-        ThumbData.h
-        FavoriteFolderData.h
-        ThumbsViewState.h ThumbsViewState.cpp
+        Src/ThumbData.h
+        Src/FavoriteFolderData.h
+        Src/ThumbsViewState.h Src/ThumbsViewState.cpp
 
-        Browsing/BrowsingBase.h Browsing/BrowsingBase.cpp
-        Browsing/BrowsingHistory.h Browsing/BrowsingHistory.cpp
-        Browsing/BrowsingBackForward.h Browsing/BrowsingBackForward.cpp
-        Browsing/BrowsingParentFolder.h Browsing/BrowsingParentFolder.cpp
-        Browsing/BrowsingPrevNextFolder.h Browsing/BrowsingPrevNextFolder.cpp
-        Browsing/BrowsingNavigation.h
+        Src/Browsing/BrowsingBase.h Src/Browsing/BrowsingBase.cpp
+        Src/Browsing/BrowsingHistory.h Src/Browsing/BrowsingHistory.cpp
+        Src/Browsing/BrowsingBackForward.h Src/Browsing/BrowsingBackForward.cpp
+        Src/Browsing/BrowsingParentFolder.h Src/Browsing/BrowsingParentFolder.cpp
+        Src/Browsing/BrowsingPrevNextFolder.h Src/Browsing/BrowsingPrevNextFolder.cpp
+        Src/Browsing/BrowsingNavigation.h
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
