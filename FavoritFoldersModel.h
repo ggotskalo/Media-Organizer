@@ -24,14 +24,14 @@ public:
     int rowCount(const QModelIndex &parent  = QModelIndex()) const override;
     QVariant data(const QModelIndex &index, int role) const override;
 
-    Q_INVOKABLE void itemClicked(int index, qreal scrollPosition);
+    Q_INVOKABLE void itemClicked(int index);
     Q_INVOKABLE void addFolder(QUrl folder);
     Q_INVOKABLE void removeFolder(int index);
     Q_INVOKABLE void renameFolder(int index, QString newName);
     Q_INVOKABLE void uniteWithFolder(int index, QUrl folder);
 
 signals:
-    void itemSelected(FavoriteFolderData ffd, qreal scrollPosition);
+    void itemSelected(FavoriteFolderData ffd);
 
 protected:
     void loadSettings();

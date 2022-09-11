@@ -7,17 +7,18 @@
 #include <QThreadPool>
 #include <QWindow>
 
-#include "BrowsingHistory.h"
 #include "DirProcessor.h"
 #include "FavoritFoldersModel.h"
 #include "ThumbsDiskCacher.h"
 #include "ThumbsModel.h"
 #include "ThumbsProvider.h"
+#include "ThumbsViewState.h"
+#include "Browsing/BrowsingNavigation.h"
 
 void makeObjectsConnections(ThumbsProvider& thumbsProvider,
                             DirProcessor& dirProcessor,
                             ThumbsDiskCacher& thumbsDiskCacher,
-                            BrowsingHistory& browsingHistory,
+                            BrowsingNavigation& browsingNavigation,
                             ThumbsModel& thumbsModel,
                             FavoritFoldersModel& foldersModel);
 
@@ -44,12 +45,12 @@ int main(int argc, char *argv[])
     ThumbsDiskCacher thumbsDiskCacher;
     thumbsDiskCacher.moveToThread(&dirProcessorThread);
 
-    BrowsingHistory browsingHistory;
+    BrowsingNavigation browsingNavigation;
     ThumbsModel thumbsModel;
     FavoritFoldersModel foldersModel;
 
     makeObjectsConnections(*thumbsProvider, dirProcessor, thumbsDiskCacher,
-                           browsingHistory, thumbsModel, foldersModel);
+                           browsingNavigation, thumbsModel, foldersModel);
 
     QQmlApplicationEngine engine;
     const QUrl url(QStringLiteral("qrc:/Qml/main.qml"));
@@ -61,7 +62,7 @@ int main(int argc, char *argv[])
 
     engine.rootContext()->setContextProperty("thumbsModel", &thumbsModel);
     engine.rootContext()->setContextProperty("foldersModel", &foldersModel);
-    engine.rootContext()->setContextProperty("browsingHistory", &browsingHistory);
+    engine.rootContext()->setContextProperty("browsing", &browsingNavigation);
     engine.addImageProvider("thumb", thumbsProvider);
 
     engine.load(url);
@@ -110,19 +111,28 @@ int main(int argc, char *argv[])
 void makeObjectsConnections(ThumbsProvider& thumbsProvider,
                             DirProcessor& dirProcessor,
                             ThumbsDiskCacher& thumbsDiskCacher,
-                            BrowsingHistory& browsingHistory,
+                            BrowsingNavigation& browsingNavigation,
                             ThumbsModel& thumbsModel,
                             FavoritFoldersModel& foldersModel)
 {
     //browsingHistory->dirProcessor
-    QObject::connect(&browsingHistory, &BrowsingHistory::openFolder, [&](QString dirPath){
+    QObject::connect(&browsingNavigation, &BrowsingNavigation::openFolder, [&](QString dirPath){
          QDesktopServices::openUrl(QUrl::fromLocalFile(dirPath));
-    });
-    QObject::connect(&browsingHistory, &BrowsingHistory::goFile, &dirProcessor, [&](ThumbData td){
-        dirProcessor.getUnitedDirFilesAsync({td.filePath});
-    });
-    QObject::connect(&browsingHistory, &BrowsingHistory::goFavoriteFolder, &dirProcessor, [&](FavoriteFolderData ffd){
-        dirProcessor.getUnitedDirFilesAsync(ffd.pathes);
+    });    
+    QObject::connect(&browsingNavigation, &BrowsingNavigation::restoreState, &dirProcessor,
+                     [&](ThumbsViewState state){
+        const QVariant& currentItem = state.currentItem;
+        QStringList pathes;
+        if (currentItem.canConvert<ThumbData>()) {
+            ThumbData td = currentItem.value<ThumbData>();
+            if (td.type == ThumbData::Folder) {
+                pathes.append(td.filePath);
+            }
+        } else if (currentItem.canConvert<FavoriteFolderData>()) {
+            FavoriteFolderData ffd = currentItem.value<FavoriteFolderData>();
+            pathes = ffd.pathes;
+        }
+        dirProcessor.getUnitedDirFilesAsync(pathes);
     });
 
     //dirProcessor->thumbsModel
@@ -131,25 +141,45 @@ void makeObjectsConnections(ThumbsProvider& thumbsProvider,
     QMetaType::registerComparators<ThumbData>();
     QObject::connect(&dirProcessor, &DirProcessor::getDirFilesAsyncResponce, &thumbsModel, [&](QStringList dirPathes, QList<ThumbData> sortedDirFiles, bool success, bool allHaveThumbs){
         thumbsModel.listReceived(dirPathes, sortedDirFiles, success);
-        qreal newScrollPosition = browsingHistory.getLastScrollPostiton();
-        QString lastSelectedFile = browsingHistory.getLastSelectedFile();
+        ThumbsViewState state = browsingNavigation.getCurrentState();
+        qreal newScrollPosition = state.scrollPos;
+        QString lastSelectedFile = state.selectedPath;
         if (newScrollPosition !=0 || !lastSelectedFile.isEmpty()) {
             auto foundIt = std::find_if(sortedDirFiles.cbegin(), sortedDirFiles.cend(), [lastSelectedFile](const ThumbData& td){
                 return td.filePath == lastSelectedFile;
             });
             int pos = foundIt == sortedDirFiles.cend() ? -1 : foundIt - sortedDirFiles.cbegin();
             emit thumbsModel.showItem(pos, newScrollPosition);
-            browsingHistory.clearLastScrollPostiton();
-            browsingHistory.clearLastSelectedFile();
+            browsingNavigation.setSelectedPath(lastSelectedFile);
         } else {
             emit thumbsModel.clearSelection();
         }
     });
     //thumbsModel->dirProcessor
+    qRegisterMetaType<ThumbsViewState>();
     QObject::connect(&thumbsModel, &ThumbsModel::itemSelected, &dirProcessor,
-        [&](ThumbData td, qreal scrollPosition) {
+        [&](ThumbData td) {
+            browsingNavigation.setSelectedPath(td.filePath);
             if (td.type == ThumbData::Folder) {
-                browsingHistory.fileSelected(td, scrollPosition);
+
+                int currentItemIndex = thumbsModel.getSelectedThumbIndex();
+                auto parentFolderItems = thumbsModel.getThumbsList();
+                if (currentItemIndex > 0 && currentItemIndex < parentFolderItems.size()) {
+                    const ThumbData currentItem = parentFolderItems.at(currentItemIndex);
+                    auto newEnd = std::remove_if(parentFolderItems.begin(), parentFolderItems.end(),
+                                                 [](const ThumbData& td){return td.type != ThumbData::Folder || td.noThumb;});
+                    parentFolderItems.erase(newEnd, parentFolderItems.end());
+                    auto selectedPosIterator = std::find(parentFolderItems.cbegin(), parentFolderItems.cend(), currentItem);
+                    if (selectedPosIterator != parentFolderItems.cend()) {
+                        currentItemIndex = selectedPosIterator - parentFolderItems.cbegin();
+                    } else {
+                        currentItemIndex = -1;
+                    }
+                }
+                QVariant v;
+                v.setValue(td);
+                ThumbsViewState state{v, 0, "", parentFolderItems, currentItemIndex};
+                browsingNavigation.setCurrentState(state);
                 dirProcessor.getUnitedDirFilesAsync({td.filePath});
             } else {
                 QDesktopServices::openUrl(QUrl::fromLocalFile(td.filePath));
@@ -160,8 +190,11 @@ void makeObjectsConnections(ThumbsProvider& thumbsProvider,
     qRegisterMetaType<FavoriteFolderData>();
     //foldersModel->dirProcessor
     QObject::connect(&foldersModel, &FavoritFoldersModel::itemSelected, &dirProcessor,
-        [&](FavoriteFolderData ffd, qreal scrollPosition) {
-            browsingHistory.favoriteFolderSelected(ffd, scrollPosition);
+        [&](FavoriteFolderData ffd) {
+            QVariant v;
+            v.setValue(ffd);
+            ThumbsViewState state{v};
+            browsingNavigation.setCurrentState(state);
             dirProcessor.getUnitedDirFilesAsync(ffd.pathes);
         }
     );

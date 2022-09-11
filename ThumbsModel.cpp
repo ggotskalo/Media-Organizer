@@ -17,19 +17,21 @@ void ThumbsModel::listReceived(QStringList dirPath, QList<ThumbData> thumbs, boo
     for (const ThumbData& thumb : qAsConst(thumbs_)) {
         pathToPosition_.insert(thumb.filePath, pos++);
     }
+    selectedThumbIndex_ = -1;
     endResetModel();
 }
 
-void ThumbsModel::selectItem(int index, qreal scrollPosition) {
-    if (index<0 || index>=thumbs_.size()) {
+void ThumbsModel::selectItem(int index) {
+    if (index < 0 || index >= thumbs_.size()) {
         return;
     }
+    selectedThumbIndex_ =  index;
     ThumbData &td = thumbs_[index];
-    emit itemSelected(td, scrollPosition);
+    emit itemSelected(td);
 }
 
 void ThumbsModel::setItemAsThumb(int index) {
-    if (index<0 || index>=thumbs_.size()) {
+    if (index < 0 || index >= thumbs_.size()) {
         return;
     }
     ThumbData &td = thumbs_[index];

@@ -49,7 +49,7 @@ Window {
                     height: parent.height - toolboxButtonWidth
                     model: foldersModel
                     onItemClicked: {
-                        foldersModel.itemClicked(index, grid.scrollPosition)
+                        foldersModel.itemClicked(index)
                     }
                 }
             }
@@ -68,11 +68,11 @@ Window {
                         width: toolboxButtonWidth
                         height: parent.height
 
-                        enabled: browsingHistory.upEnabled
+                        enabled: browsing.upEnabled
                         text: qsTr("[..]")
 
                         onClicked: {
-                            browsingHistory.goUp(grid.scrollPosition)
+                            browsing.goParent()
                         }
                     }
 
@@ -80,11 +80,11 @@ Window {
                         width: toolboxButtonWidth
                         height: parent.height
 
-                        enabled: browsingHistory.backEnabled
+                        enabled: browsing.backEnabled
                         text: qsTr("<-")
 
                         onClicked: {
-                            browsingHistory.goBack(grid.scrollPosition)
+                            browsing.goBack()
                         }
                     }
 
@@ -92,11 +92,35 @@ Window {
                         width: toolboxButtonWidth
                         height: parent.height
 
-                        enabled: browsingHistory.forwardEnabled
+                        enabled: browsing.forwardEnabled
                         text: qsTr("->")
 
                         onClicked: {
-                            browsingHistory.goForward(grid.scrollPosition)
+                            browsing.goForward()
+                        }
+                    }
+
+                    Button {
+                        width: toolboxButtonWidth
+                        height: parent.height
+
+                        enabled: browsing.prevFolderEnabled
+                        text: qsTr("[]<-")
+
+                        onClicked: {
+                            browsing.goPrevFolder()
+                        }
+                    }
+
+                    Button {
+                        width: toolboxButtonWidth
+                        height: parent.height
+
+                        enabled: browsing.nextFolderEnabled
+                        text: qsTr("[]->")
+
+                        onClicked: {
+                            browsing.goNextFolder()
                         }
                     }
 
@@ -108,7 +132,7 @@ Window {
 
                         verticalAlignment: Text.AlignVCenter
                         elide: Text.ElideRight
-                        text: browsingHistory.currentPath
+                        text: browsing.currentPath
                         background: Rectangle {
                             color: "white"
                             opacity: 1
@@ -116,7 +140,7 @@ Window {
 
                         MouseArea {
                             anchors.fill: parent
-                            onClicked: browsingHistory.currentClicked()
+                            onClicked: browsing.openCurrentFolder()
                         }
                     }
                 }
@@ -127,6 +151,7 @@ Window {
                     width: parent.width
                     height: parent.height - toolboxHeight
                     clip: true
+                    onScrollPositionChanged: browsing.setScrollPos(scrollPosition)
 
                     model: thumbsModel
                     Connections {
@@ -136,7 +161,7 @@ Window {
                     }
                     onItemClicked: {
                         grid.currentIndex = index
-                        thumbsModel.selectItem(index, scrollPosition)
+                        thumbsModel.selectItem(index)
                     }
                     onItemMiddleClicked: {
                         grid.currentIndex = index
@@ -150,7 +175,7 @@ Window {
         }
         Keys.onPressed: {
                  if (event.key == Qt.Key_Backspace) {
-                     browsingHistory.goBack(grid.scrollPosition);
+                     browsing.goBack();
                      event.accepted = true;
                  }
              }
@@ -159,9 +184,9 @@ Window {
             acceptedButtons: Qt.BackButton | Qt.ForwardButton
             onClicked: {
                    if (mouse.button == Qt.BackButton) {
-                       browsingHistory.goBack(grid.scrollPosition)
+                       browsing.goBack()
                    } else if (mouse.button == Qt.ForwardButton) {
-                       browsingHistory.goForward(grid.scrollPosition)
+                       browsing.goForward()
                    }
             }
         }
