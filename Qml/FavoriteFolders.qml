@@ -6,7 +6,7 @@ ListView {
     signal itemClicked(index: int)
     delegate: Rectangle {
         width: parent.width
-        height:50
+        height: Style.favoritesItemHeight
         border.color: "black"
         border.width: 1
         Text {

@@ -1,6 +1,7 @@
 import QtQuick 2.14
 import QtQuick.Window 2.14
 import QtQuick.Controls 2.14
+import QtQuick.Layouts 1.11
 import Qt.labs.platform 1.1 as Platform
 import Qt.labs.settings 1.0
 
@@ -21,18 +22,19 @@ Window {
             anchors.fill: parent
             orientation: Qt.Horizontal
 
-            Column {
+            ColumnLayout {
                 id:favoriteFolders
 
                 height: parent.height
                 width: Style.favoritesColumnWidth
                 SplitView.maximumWidth: Style.favoritesColumnMaximumWidth
+                spacing:0
 
                 Button {
                     id: addFolderButton
 
-                    width:parent.width
-                    height:Style.toolboxHeight
+                    Layout.fillWidth: true
+                    Layout.minimumHeight: Style.toolboxHeight
 
                     text: qsTr("Add Folder")
 
@@ -42,8 +44,9 @@ Window {
                 }
 
                 FavoriteFolders {
-                    width: parent.width
-                    height: parent.height - Style.toolboxButtonWidth
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    clip:true
                     model: foldersModel
                     onItemClicked: {
                         foldersModel.itemClicked(index)
@@ -56,76 +59,47 @@ Window {
 
                 height: Style.toolboxHeight
 
-                Row {
+                RowLayout {
                     id: toolboxRow
                     width: parent.width
                     height: Style.toolboxHeight
+                    spacing: 0
 
-                    Button {
-                        width: Style.toolboxButtonWidth
-                        height: parent.height
-
+                    BigToolButton {
                         enabled: browsing.upEnabled
                         text: qsTr("[..]")
-
-                        onClicked: {
-                            browsing.goParent()
-                        }
+                        onClicked: browsing.goParent()
                     }
 
-                    Button {
-                        width: Style.toolboxButtonWidth
-                        height: parent.height
-
+                    BigToolButton {
                         enabled: browsing.backEnabled
                         text: qsTr("<-")
-
-                        onClicked: {
-                            browsing.goBack()
-                        }
+                        onClicked: browsing.goBack()
                     }
 
-                    Button {
-                        width: Style.toolboxButtonWidth
-                        height: parent.height
-
+                    BigToolButton {
                         enabled: browsing.forwardEnabled
                         text: qsTr("->")
-
-                        onClicked: {
-                            browsing.goForward()
-                        }
+                        onClicked: browsing.goForward()
                     }
 
-                    Button {
-                        width: Style.toolboxButtonWidth
-                        height: parent.height
-
+                    BigToolButton {
                         enabled: browsing.prevFolderEnabled
                         text: qsTr("[]<-")
-
-                        onClicked: {
-                            browsing.goPrevFolder()
-                        }
+                        onClicked: browsing.goPrevFolder()
                     }
 
-                    Button {
-                        width: Style.toolboxButtonWidth
-                        height: parent.height
-
+                    BigToolButton {
                         enabled: browsing.nextFolderEnabled
                         text: qsTr("[]->")
-
-                        onClicked: {
-                            browsing.goNextFolder()
-                        }
+                        onClicked: browsing.goNextFolder()
                     }
 
                     Label {
                         id: dir
 
-                        width: parent.width - x
-                        height: parent.height
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
 
                         verticalAlignment: Text.AlignVCenter
                         elide: Text.ElideRight
