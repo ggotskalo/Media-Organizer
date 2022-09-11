@@ -20,7 +20,7 @@ class ThumbsModel : public QAbstractListModel
      explicit ThumbsModel(QObject *parent = nullptr);
      ~ThumbsModel();
 
-     Q_INVOKABLE void selectItem(int index, qreal scrollPosition);
+     Q_INVOKABLE void selectItem(int index);
      Q_INVOKABLE void setItemAsThumb(int index);
      Q_INVOKABLE void removeItem(int index);
 
@@ -28,19 +28,22 @@ class ThumbsModel : public QAbstractListModel
      QHash<int, QByteArray> roleNames() const override;
      int rowCount(const QModelIndex &parent  = QModelIndex()) const override;
      QVariant data(const QModelIndex &index, int role) const override;
+     QList<ThumbData> getThumbsList() const {return thumbs_;}
+     int getSelectedThumbIndex() const {return selectedThumbIndex_;}
 
 public slots:
     void showThumb(QString filePath, QString thumbSource, bool success);
     void listReceived(QStringList dirPathes, QList<ThumbData> thumbs, bool success);
 
 signals:
-    void itemSelected(ThumbData td, qreal scrollPosition);
+    void itemSelected(ThumbData td);
     void setItemAsThumbSignal(ThumbData td);
     void showItem(int pos, qreal newScrollPosition);
     void clearSelection();
 
 protected:
      QList<ThumbData> thumbs_;
+     int selectedThumbIndex_;
      QHash<QString, int> pathToPosition_;
 };
 

@@ -51,12 +51,12 @@ FavoritFoldersModel::~FavoritFoldersModel()
     delete settings_;
 }
 
-void FavoritFoldersModel::itemClicked(int index, qreal scrollPosition) {
+void FavoritFoldersModel::itemClicked(int index) {
     if (index < 0 || index >= folders_.size()) {
         return;
     }
     FavoriteFolderData &ffd = folders_[index];
-    emit itemSelected(ffd, scrollPosition);
+    emit itemSelected(ffd);
 }
 
 void FavoritFoldersModel::addFolder(QUrl folder) {
@@ -101,7 +101,7 @@ void FavoritFoldersModel::uniteWithFolder(int pos, QUrl folder)
         emit dataChanged(index(pos), index(pos));
         saveSettings();
     }
-    itemClicked(pos, 0);
+    itemClicked(pos);
 }
 
 QHash<int, QByteArray> FavoritFoldersModel::roleNames() const

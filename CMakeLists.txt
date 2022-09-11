@@ -28,13 +28,20 @@ set(PROJECT_SOURCES
         FavoritFoldersModel.h FavoritFoldersModel.cpp
 
         DirProcessor.h DirProcessor.cpp
-        BrowsingHistory.h BrowsingHistory.cpp
         ThumbsDiskCacher.h ThumbsDiskCacher.cpp
 
         ThumbGenerators/VideoThumbnailGeneratorWin32.h ThumbGenerators/VideoThumbnailGeneratorWin32.cpp
 
         ThumbData.h
         FavoriteFolderData.h
+        ThumbsViewState.h ThumbsViewState.cpp
+
+        Browsing/BrowsingBase.h Browsing/BrowsingBase.cpp
+        Browsing/BrowsingHistory.h Browsing/BrowsingHistory.cpp
+        Browsing/BrowsingBackForward.h Browsing/BrowsingBackForward.cpp
+        Browsing/BrowsingParentFolder.h Browsing/BrowsingParentFolder.cpp
+        Browsing/BrowsingPrevNextFolder.h Browsing/BrowsingPrevNextFolder.cpp
+        Browsing/BrowsingNavigation.h
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
