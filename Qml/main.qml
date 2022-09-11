@@ -12,12 +12,9 @@ Window {
     visible: true
     title: qsTr("Media Organizer")
 
-    property int toolboxHeight: 50
-    property int toolboxButtonWidth: 100
-
     Item {
 
-        anchors.fill: parent              
+        anchors.fill: parent
 
         SplitView {
 
@@ -28,14 +25,14 @@ Window {
                 id:favoriteFolders
 
                 height: parent.height
-                width: toolboxButtonWidth
-                SplitView.maximumWidth: 400
+                width: Style.favoritesColumnWidth
+                SplitView.maximumWidth: Style.favoritesColumnMaximumWidth
 
                 Button {
                     id: addFolderButton
 
                     width:parent.width
-                    height:toolboxHeight
+                    height:Style.toolboxHeight
 
                     text: qsTr("Add Folder")
 
@@ -46,7 +43,7 @@ Window {
 
                 FavoriteFolders {
                     width: parent.width
-                    height: parent.height - toolboxButtonWidth
+                    height: parent.height - Style.toolboxButtonWidth
                     model: foldersModel
                     onItemClicked: {
                         foldersModel.itemClicked(index)
@@ -57,15 +54,15 @@ Window {
             Column {
                 id: toolbox
 
-                height: toolboxHeight
+                height: Style.toolboxHeight
 
                 Row {
                     id: toolboxRow
                     width: parent.width
-                    height: toolboxHeight
+                    height: Style.toolboxHeight
 
                     Button {
-                        width: toolboxButtonWidth
+                        width: Style.toolboxButtonWidth
                         height: parent.height
 
                         enabled: browsing.upEnabled
@@ -77,7 +74,7 @@ Window {
                     }
 
                     Button {
-                        width: toolboxButtonWidth
+                        width: Style.toolboxButtonWidth
                         height: parent.height
 
                         enabled: browsing.backEnabled
@@ -89,7 +86,7 @@ Window {
                     }
 
                     Button {
-                        width: toolboxButtonWidth
+                        width: Style.toolboxButtonWidth
                         height: parent.height
 
                         enabled: browsing.forwardEnabled
@@ -101,7 +98,7 @@ Window {
                     }
 
                     Button {
-                        width: toolboxButtonWidth
+                        width: Style.toolboxButtonWidth
                         height: parent.height
 
                         enabled: browsing.prevFolderEnabled
@@ -113,7 +110,7 @@ Window {
                     }
 
                     Button {
-                        width: toolboxButtonWidth
+                        width: Style.toolboxButtonWidth
                         height: parent.height
 
                         enabled: browsing.nextFolderEnabled
@@ -149,7 +146,7 @@ Window {
                     id: grid
 
                     width: parent.width
-                    height: parent.height - toolboxHeight
+                    height: parent.height - Style.toolboxHeight
                     clip: true
                     onScrollPositionChanged: browsing.setScrollPos(scrollPosition)
 
