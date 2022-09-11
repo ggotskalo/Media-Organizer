@@ -6,5 +6,6 @@
         <file>Qml/FavoriteFoldersMenu.qml</file>
         <file>Qml/Style.qml</file>
         <file>Qml/qmldir</file>
+        <file>Qml/BigToolButton.qml</file>
     </qresource>
 </RCC>
