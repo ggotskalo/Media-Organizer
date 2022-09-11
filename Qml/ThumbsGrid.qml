@@ -9,11 +9,11 @@ GridView {
     signal itemRightClicked(var index)
     signal removeSelected(var index)
 
-    property int thumbWidth: 100
-    property int thumbHeigth: 100
-    property int gap: 3
-    property int selectionBorder: 3
-    property int border: 1
+    property int thumbWidth: Style.thumbWidth
+    property int thumbHeight: Style.thumbHeight
+    property int gap: Style.thumbGap
+    property int selectionBorder: Style.thumbSelectionBorder
+    property int border: Style.thumbBorder
     property alias scrollPosition: scroll.position
 
     function showItem(index, newScrollPosition) {
@@ -28,21 +28,20 @@ GridView {
     width: parent.width
     ScrollBar.vertical: ScrollBar {
         id: scroll
-        width:15
+        width: Style.thumbViewScrollWidth
         visible: true
     }
     cellWidth: thumbWidth + gap + border*2
-    cellHeight: thumbHeigth + gap + border*2
+    cellHeight: thumbHeight + gap + border*2
     rightMargin: -gap
     bottomMargin: -gap
     focus: true
     highlight:
         Rectangle {
-            width: 150
             //because delegate have z = 1
             z: 2
             color: "transparent"
-            border.color: "crimson"
+            border.color: Style.thumbSelectionColor
             border.width: selectionBorder
         }
     highlightMoveDuration: 0
