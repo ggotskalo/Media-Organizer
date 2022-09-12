@@ -42,6 +42,8 @@ set(PROJECT_SOURCES
         Src/Browsing/BrowsingParentFolder.h Src/Browsing/BrowsingParentFolder.cpp
         Src/Browsing/BrowsingPrevNextFolder.h Src/Browsing/BrowsingPrevNextFolder.cpp
         Src/Browsing/BrowsingNavigation.h
+
+        Src/ComponentsMediator.h Src/ComponentsMediator.cpp
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
