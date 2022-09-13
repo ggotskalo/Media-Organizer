@@ -1,10 +1,12 @@
 #include "DirProcessor.h"
+
 #include <QDir>
 #include <QImageReader>
 #include <QMetaObject>
 #include <algorithm>
 
-DirProcessor::DirProcessor(ThumbsProvider* thumbsProvider) : thumbsProvider_(thumbsProvider)
+DirProcessor::DirProcessor(ThumbsProviderInterface* thumbsProvider, VideoThumbnailGeneratorFactory& factory) :
+    thumbsProvider_(thumbsProvider), videoThumbnailGeneratorFactory_(factory)
 {    
     thumbsCreating_ = new QFutureWatcher<QImage>(this);
     connect(thumbsCreating_, &QFutureWatcher<QImage>::resultReadyAt, this, [this](int num) {
@@ -76,7 +78,7 @@ void DirProcessor::cancel() {
     canceled_ = true;
     {
         QMutexLocker lock(&thumbnailGeneratorsMutex_);
-        for (VideoThumbnailGeneratorWin32* thumbnailGenerator : qAsConst(thumbnailGenerators_)) {
+        for (VideoThumbnailGeneratorInterface* thumbnailGenerator : qAsConst(thumbnailGenerators_)) {
             thumbnailGenerator->abort();
         }
     }
@@ -239,17 +241,18 @@ QImage DirProcessor::makeThumb(ThumbData fileData)
 
     } else if (fileData.type == ThumbData::Video) {
 
-        VideoThumbnailGeneratorWin32 thumbnailGenerator;
+        VideoThumbnailGeneratorInterface* thumbnailGenerator = videoThumbnailGeneratorFactory_.createGenerator();
         {
             QMutexLocker lock(&thumbnailGeneratorsMutex_);
-            thumbnailGenerators_.insert(fileData.thumbSource, &thumbnailGenerator);
+            thumbnailGenerators_.insert(fileData.thumbSource, thumbnailGenerator);
         }
         QImage images[1];
-        thumbnailGenerator.getThumbs(fileData.thumbSource.toStdWString().c_str(), 1, images);
+        thumbnailGenerator->getThumbs(fileData.thumbSource, 1, images);
         {
             QMutexLocker lock(&thumbnailGeneratorsMutex_);
             thumbnailGenerators_.remove(fileData.thumbSource);
         }
+        delete thumbnailGenerator;
         return images[0];
 
     }

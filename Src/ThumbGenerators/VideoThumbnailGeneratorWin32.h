@@ -22,6 +22,9 @@
 #include <assert.h>
 #include <propvarutil.h>
 
+#include "VideoThumbnailGeneratorInterface.h"
+#include "VideoThumbnailGeneratorFactory.h"
+
 template <class T> void SafeRelease(T **ppT)
 {
     if (*ppT)
@@ -31,20 +34,20 @@ template <class T> void SafeRelease(T **ppT)
     }
 }
 
-class VideoThumbnailGeneratorWin32
+class VideoThumbnailGeneratorWin32 : public VideoThumbnailGeneratorInterface
 {
 public:
 
     VideoThumbnailGeneratorWin32();
     ~VideoThumbnailGeneratorWin32();
     static bool init(HWND hwnd);
-
-    HRESULT     createThumbs(ID2D1RenderTarget *pRT, DWORD count, QImage images[]);
-    HRESULT     openFile(const WCHAR* wszFileName);
-    bool        getThumbs(const WCHAR* wszFileName, DWORD count, QImage images[]);
+    bool        getThumbs(QString path, int count, QImage images[]);
     void        abort() {aborted_ = true;}
 
 protected:
+    bool        getThumbs(const WCHAR* wszFileName, DWORD count, QImage images[]);
+    HRESULT     openFile(const WCHAR* wszFileName);
+    HRESULT     createThumbs(ID2D1RenderTarget *pRT, DWORD count, QImage images[]);
     HRESULT     createThumb(ID2D1RenderTarget *pRT, LONGLONG& hnsPos, QImage *image);
     HRESULT     getDuration(LONGLONG *phnsDuration);
     HRESULT     canSeek(BOOL *pbCanSeek);
@@ -74,7 +77,14 @@ protected:
     volatile bool aborted_ = false;
 };
 
-
+class VideoThumbnailGeneratorWin32Factory : public VideoThumbnailGeneratorFactory {
+    // VideoThumbnailGeneratorFactory interface
+public:
+    VideoThumbnailGeneratorInterface *createGenerator() override
+    {
+        return new VideoThumbnailGeneratorWin32();
+    }
+};
 
 
 

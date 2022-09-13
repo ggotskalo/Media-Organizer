@@ -12,6 +12,7 @@
 #include "ThumbsProvider.h"
 #include "ThumbsViewState.h"
 #include "Browsing/BrowsingNavigation.h"
+#include "ThumbGenerators/VideoThumbnailGeneratorWin32.h"
 
 int main(int argc, char *argv[])
 {
@@ -29,8 +30,9 @@ int main(int argc, char *argv[])
 
     //don't delete, the QQmlEngine takes ownership of provider
     ThumbsProvider* thumbsProvider = new ThumbsProvider;
+    VideoThumbnailGeneratorWin32Factory factory;
 
-    DirProcessor dirProcessor(thumbsProvider);
+    DirProcessor dirProcessor(thumbsProvider, factory);
     dirProcessor.moveToThread(&dirProcessorThread);
 
     ThumbsDiskCacher thumbsDiskCacher;
