@@ -7,14 +7,15 @@
 #include <QtConcurrent/QtConcurrent>
 
 #include "ThumbData.h"
-#include "ThumbGenerators/VideoThumbnailGeneratorWin32.h"
-#include "ThumbsProvider.h"
+#include "ThumbGenerators/VideoThumbnailGeneratorInterface.h"
+#include "ThumbGenerators/VideoThumbnailGeneratorFactory.h"
+#include "ThumbsProviderInterface.h"
 
 class DirProcessor : public QObject
 {
     Q_OBJECT
 public:
-    DirProcessor(ThumbsProvider*);
+    DirProcessor(ThumbsProviderInterface*, VideoThumbnailGeneratorFactory&);
 
     bool getUnitedDirFiles(QStringList dirPathes, QList<ThumbData>& thumbsOut, bool *allHaveThumbs);
 
@@ -45,11 +46,12 @@ protected:
     static ThumbData::Type getFileType(const QFileInfo& fileInfo);
     static QFileInfo getMostSuitable(const QFileInfoList& folderFiles);
 
-    ThumbsProvider* thumbsProvider_;
+    ThumbsProviderInterface* thumbsProvider_;
+    VideoThumbnailGeneratorFactory& videoThumbnailGeneratorFactory_;
     QList<ThumbData> thumbsForGeneration_;
     QFutureWatcher<QImage> *thumbsCreating_ = nullptr;
 
-    QHash<QString, VideoThumbnailGeneratorWin32*> thumbnailGenerators_;
+    QHash<QString, VideoThumbnailGeneratorInterface*> thumbnailGenerators_;
     QMutex thumbnailGeneratorsMutex_;
 
     QSet<QString> pathesProcessing_;

@@ -85,6 +85,9 @@ HRESULT VideoThumbnailGeneratorWin32::openFile(const WCHAR* wszFileName)
     
     return hr;
 }
+bool VideoThumbnailGeneratorWin32::getThumbs(QString path, int count, QImage images[]) {
+    return getThumbs(path.toStdWString().c_str(), count, images);
+}
 
 bool VideoThumbnailGeneratorWin32::getThumbs(const WCHAR* wszFileName, DWORD count, QImage images[])
 {
