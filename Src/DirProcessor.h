@@ -51,7 +51,7 @@ protected:
     QList<ThumbData> thumbsForGeneration_;
     QFutureWatcher<QImage> *thumbsCreating_ = nullptr;
 
-    QHash<QString, VideoThumbnailGeneratorInterface*> thumbnailGenerators_;
+    QHash<QString, std::shared_ptr<VideoThumbnailGeneratorInterface>> thumbnailGenerators_;
     QMutex thumbnailGeneratorsMutex_;
 
     QSet<QString> pathesProcessing_;
