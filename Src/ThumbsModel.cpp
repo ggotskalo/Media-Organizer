@@ -1,4 +1,5 @@
 #include "ThumbsModel.h"
+#include "DiskOperations.h"
 
 ThumbsModel::ThumbsModel(QObject *parent) : QAbstractListModel(parent)
 {    
@@ -40,21 +41,21 @@ void ThumbsModel::setItemAsThumb(int index) {
 
 void ThumbsModel::removeItem(int index) {
     QString path = thumbs_.at(index).filePath;
-    QFileInfo fileInfo(path);
-    bool removed = false;
-    if (fileInfo.isFile()) {
-        QFile file(path);
-        removed = file.remove();
-    } else if (fileInfo.isDir()) {
-        QDir dir(thumbs_.at(index).filePath);
-        removed = dir.removeRecursively();
-    }
-    if (removed) {
+    if (DiskOperations::remove(path)) {
         beginRemoveRows(QModelIndex(), index, index);
         thumbs_.removeAt(index);
         endRemoveRows();
     }
+}
 
+void ThumbsModel::moveToParent(int index)
+{
+    QString path = thumbs_.at(index).filePath;
+    if (DiskOperations::moveToParentFolder(path)) {
+        beginRemoveRows(QModelIndex(), index, index);
+        thumbs_.removeAt(index);
+        endRemoveRows();
+    }
 }
 
 QHash<int, QByteArray> ThumbsModel::roleNames() const

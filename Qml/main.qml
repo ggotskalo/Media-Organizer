@@ -141,6 +141,9 @@ Window {
                     onRemoveSelected: {
                         thumbsModel.removeItem(index)
                     }
+                    onMoveToParent: {
+                        thumbsModel.moveToParent(index)
+                    }
                 }
             }
         }
