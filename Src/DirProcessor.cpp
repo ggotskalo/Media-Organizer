@@ -59,7 +59,10 @@ void DirProcessor::generateThumbnail(QString path)
     QString file = fi.fileName();
     ThumbData thumbData = {file, path, getFileType(fi), path, 0};
     emit fileProcessed(path, "", true);
-    pathesProcessing_.insert(path);
+    {
+        QMutexLocker lock(&pathesProcessingMutex_);
+        pathesProcessing_.insert(path);
+    }
     QtConcurrent::run([this, thumbData, path]{
         QImage thumb = makeThumb(thumbData);
         if (!thumb.isNull()) {
