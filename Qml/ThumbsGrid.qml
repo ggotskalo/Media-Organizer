@@ -8,6 +8,7 @@ GridView {
     signal itemMiddleClicked(var index)
     signal itemRightClicked(var index)
     signal removeSelected(var index)
+    signal moveToParent(var index)
 
     property int thumbWidth: Style.thumbWidth
     property int thumbHeight: Style.thumbHeight
@@ -104,6 +105,10 @@ GridView {
                 MenuItem {
                     text: qsTr("Remove")
                     onTriggered: removeSelected(index)
+                }
+                MenuItem {
+                    text: qsTr("Move to parent folder")
+                    onTriggered: moveToParent(index)
                 }
             }
         }

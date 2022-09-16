@@ -22,6 +22,7 @@ set(PROJECT_SOURCES
         Src/main.cpp
         Qml/qml.qrc
 
+        Src/ThumbsProviderInterface.h
         Src/ThumbsProvider.h Src/ThumbsProvider.cpp
 
         Src/ThumbsModel.h Src/ThumbsModel.cpp
@@ -29,8 +30,11 @@ set(PROJECT_SOURCES
 
         Src/DirProcessor.h Src/DirProcessor.cpp
         Src/ThumbsDiskCacher.h Src/ThumbsDiskCacher.cpp
+        Src/DiskOperations.h Src/DiskOperations.cpp
 
+        Src/ThumbGenerators/VideoThumbnailGeneratorInterface.h
         Src/ThumbGenerators/VideoThumbnailGeneratorWin32.h Src/ThumbGenerators/VideoThumbnailGeneratorWin32.cpp
+        Src/ThumbGenerators/VideoThumbnailGeneratorFactory.h
 
         Src/ThumbData.h
         Src/FavoriteFolderData.h
@@ -51,22 +55,10 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
     )
-# Define target properties for Android with Qt 6 as:
-#    set_property(TARGET MediaOrganizer APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
-#                 ${CMAKE_CURRENT_SOURCE_DIR}/android)
-# For more information, see https://doc.qt.io/qt-6/qt-add-executable.html#target-creation
 else()
-    if(ANDROID)
-        add_library(MediaOrganizer SHARED
-            ${PROJECT_SOURCES}
-        )
-# Define properties for Android with Qt 5 after find_package() calls as:
-#    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
-    else()
-        add_executable(MediaOrganizer
-          ${PROJECT_SOURCES}
-        )
-    endif()
+    add_executable(MediaOrganizer
+      ${PROJECT_SOURCES}
+    )
 endif()
 
 target_compile_definitions(MediaOrganizer
@@ -74,15 +66,21 @@ target_compile_definitions(MediaOrganizer
 target_link_libraries(MediaOrganizer
   PRIVATE Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Quick)
 
-set_target_properties(MediaOrganizer PROPERTIES
-    MACOSX_BUNDLE_GUI_IDENTIFIER my.example.com
-    MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
-    MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
-)
-
 if(QT_VERSION_MAJOR EQUAL 6)
     qt_import_qml_plugins(MediaOrganizer)
     qt_finalize_executable(MediaOrganizer)
 endif()
 
-target_link_libraries(MediaOrganizer PRIVATE Qt5::Concurrent Kernel32 mfplat mfreadwrite mfuuid propsys shell32 d2d1 winmm)
+target_link_libraries(MediaOrganizer PRIVATE Qt${QT_VERSION_MAJOR}::Concurrent Kernel32 mfplat mfreadwrite mfuuid propsys shell32 d2d1 winmm)
+
+option(BUILD_TESTS "Build tests" ON)
+if(BUILD_TESTS)
+    add_library(mediaorganizer-test
+            Src/DirProcessor.h Src/DirProcessor.cpp
+    )
+    target_link_libraries(mediaorganizer-test PUBLIC
+        Qt${QT_VERSION_MAJOR}::Concurrent
+        Qt${QT_VERSION_MAJOR}::Gui
+    )
+    add_subdirectory(test)
+endif()

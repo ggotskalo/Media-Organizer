@@ -23,6 +23,7 @@ class ThumbsModel : public QAbstractListModel
      Q_INVOKABLE void selectItem(int index);
      Q_INVOKABLE void setItemAsThumb(int index);
      Q_INVOKABLE void removeItem(int index);
+     Q_INVOKABLE void moveToParent(int index);
 
      // QAbstractItemModel interface
      QHash<int, QByteArray> roleNames() const override;
