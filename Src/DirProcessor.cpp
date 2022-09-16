@@ -78,7 +78,7 @@ void DirProcessor::cancel() {
     canceled_ = true;
     {
         QMutexLocker lock(&thumbnailGeneratorsMutex_);
-        for (VideoThumbnailGeneratorInterface* thumbnailGenerator : qAsConst(thumbnailGenerators_)) {
+        for (const auto& thumbnailGenerator : qAsConst(thumbnailGenerators_)) {
             thumbnailGenerator->abort();
         }
     }
@@ -241,7 +241,7 @@ QImage DirProcessor::makeThumb(ThumbData fileData)
 
     } else if (fileData.type == ThumbData::Video) {
 
-        VideoThumbnailGeneratorInterface* thumbnailGenerator = videoThumbnailGeneratorFactory_.createGenerator();
+        auto thumbnailGenerator = std::shared_ptr<VideoThumbnailGeneratorInterface>(videoThumbnailGeneratorFactory_.createGenerator());
         {
             QMutexLocker lock(&thumbnailGeneratorsMutex_);
             thumbnailGenerators_.insert(fileData.thumbSource, thumbnailGenerator);
@@ -252,7 +252,6 @@ QImage DirProcessor::makeThumb(ThumbData fileData)
             QMutexLocker lock(&thumbnailGeneratorsMutex_);
             thumbnailGenerators_.remove(fileData.thumbSource);
         }
-        delete thumbnailGenerator;
         return images[0];
 
     }
