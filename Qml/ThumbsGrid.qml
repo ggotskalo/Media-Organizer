@@ -9,6 +9,7 @@ GridView {
     signal itemRightClicked(var index)
     signal removeSelected(var index)
     signal moveToParent(var index)
+    signal showInExplorer(var index)
 
     property int thumbWidth: Style.thumbWidth
     property int thumbHeight: Style.thumbHeight
@@ -102,6 +103,10 @@ GridView {
             }
             Menu {
                 id: contextMenu
+                MenuItem {
+                    text: qsTr("Show")
+                    onTriggered: showInExplorer(index)
+                }
                 MenuItem {
                     text: qsTr("Remove")
                     onTriggered: removeSelected(index)
