@@ -1,5 +1,6 @@
 #include "DiskOperations.h"
 #include <QDir>
+#include <QProcess>
 DiskOperations::DiskOperations()
 {
 
@@ -37,4 +38,14 @@ bool DiskOperations::moveToParentFolder(QString path)
 
     }
     return success;
+}
+
+bool DiskOperations::showInExplorer(QString path)
+{
+       QStringList args;
+       args << "/select," << QDir::toNativeSeparators(path);
+       QProcess *process = new QProcess();
+       process->start("explorer.exe", args);
+       QObject::connect(process, SIGNAL(finished(int)), process, SLOT(deleteLater()));
+       return true;
 }

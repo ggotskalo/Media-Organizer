@@ -58,6 +58,12 @@ void ThumbsModel::moveToParent(int index)
     }
 }
 
+void ThumbsModel::showInExplorer(int index)
+{
+    QString path = thumbs_.at(index).filePath;
+    DiskOperations::showInExplorer(path);
+}
+
 QHash<int, QByteArray> ThumbsModel::roleNames() const
 {
     return { {SourceRole, "source"}, {NameRole, "name"}, {SizeRole, "size"},
@@ -68,7 +74,7 @@ QHash<int, QByteArray> ThumbsModel::roleNames() const
 
 int ThumbsModel::rowCount(const QModelIndex &parent) const
 {
-    return thumbs_.count();
+    return thumbs_.count();    
 }
 
 QVariant ThumbsModel::data(const QModelIndex &index, int role) const

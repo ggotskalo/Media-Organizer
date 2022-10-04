@@ -144,6 +144,9 @@ Window {
                     onMoveToParent: {
                         thumbsModel.moveToParent(index)
                     }
+                    onShowInExplorer: {
+                        thumbsModel.showInExplorer(index)
+                    }
                 }
             }
         }

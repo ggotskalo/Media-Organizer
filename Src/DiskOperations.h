@@ -8,6 +8,7 @@ public:
     DiskOperations();
     static bool remove(QString path);
     static bool moveToParentFolder(QString path);
+    static bool showInExplorer(QString path);
 };
 
 #endif // DISKOPERATIONS_H

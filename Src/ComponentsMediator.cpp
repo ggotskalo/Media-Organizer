@@ -62,6 +62,18 @@ void ComponentsMediator::makeObjectsConnections()
             }
     });
 
+    QObject::connect(&thumbsModel, &ThumbsModel::itemSelected, &dirProcessor,
+        [&](ThumbData td) {
+            //save selected path to history, need for restoring selected item
+            browsingNavigation.setSelectedPath(td.filePath);
+            if (td.type == ThumbData::Folder) {
+                passCurrentStateToNavigation(td);
+                dirProcessor.getUnitedDirFilesAsync({td.filePath});
+            } else {
+                QDesktopServices::openUrl(QUrl::fromLocalFile(td.filePath));
+            }
+    });
+
     //foldersModel->dirProcessor
     QObject::connect(&foldersModel, &FavoritFoldersModel::itemSelected, &dirProcessor,
         [&](FavoriteFolderData ffd) {
