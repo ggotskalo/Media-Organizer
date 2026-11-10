@@ -3,6 +3,8 @@
 #include <QQmlContext>
 #include <QScreen>
 #include <QWindow>
+#include <QTimer>
+
 #include "ComponentsMediator.h"
 #include "DirProcessor.h"
 #include "FavoritFoldersModel.h"
@@ -12,6 +14,7 @@
 #include "ThumbsViewState.h"
 #include "Browsing/BrowsingNavigation.h"
 #include "ThumbGenerators/VideoThumbnailGeneratorWin32.h"
+#include "FileIndexer.h"
 #include "StatusManager.h"
 #include "ShortcutFixer.h"
 
@@ -42,6 +45,7 @@ int main(int argc, char *argv[])
     BrowsingNavigation browsingNavigation;
     ThumbsModel thumbsModel;
     FavoritFoldersModel foldersModel;
+    FileIndexer fileIndexer;
     StatusManager statusManager;
     ShortcutFixer shortcutFixer;
 
@@ -50,8 +54,24 @@ int main(int argc, char *argv[])
     componentsMediator.registerMetaTypes();
     componentsMediator.makeObjectsConnections();
     
+    // Connect foldersModel changes to fileIndexer
+    QObject::connect(&foldersModel, &FavoritFoldersModel::foldersChanged, [&]() {
+        fileIndexer.indexFolders(foldersModel.getAllFolders());
+    });
+    
     QObject::connect(&shortcutFixer, &ShortcutFixer::refreshRequested,
                      &thumbsModel, &ThumbsModel::refresh);
+
+    // Connect fileIndexer status to statusManager
+    QObject::connect(&fileIndexer, &FileIndexer::indexingStateChanged, [&]() {
+        if (fileIndexer.isIndexing()) {
+            statusManager.setStatus("Indexing files...");
+        } else {
+            statusManager.setStatus(QString("Indexed %1 files").arg(fileIndexer.indexedFilesCount()));
+            // Clear status after 2 seconds
+            QTimer::singleShot(2000, &statusManager, &StatusManager::clearStatus);
+        }
+    });
 
     QQmlApplicationEngine engine;
     const QUrl url(QStringLiteral("qrc:/main.qml"));
@@ -64,6 +84,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("thumbsModel", &thumbsModel);
     engine.rootContext()->setContextProperty("foldersModel", &foldersModel);
     engine.rootContext()->setContextProperty("browsing", &browsingNavigation);
+    engine.rootContext()->setContextProperty("fileIndexer", &fileIndexer);
     engine.rootContext()->setContextProperty("statusManager", &statusManager);
     engine.rootContext()->setContextProperty("shortcutFixer", &shortcutFixer);
     engine.addImageProvider("thumb", thumbsProvider);
