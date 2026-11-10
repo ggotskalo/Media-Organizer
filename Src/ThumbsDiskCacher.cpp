@@ -28,7 +28,14 @@ void ThumbsDiskCacher::storeThumbInCache(QString path, QImage thumb)
 
 void ThumbsDiskCacher::saveThumbs()
 {
-    if (modified_ && !currentSortedFiles_.empty()) {
+    // Save if modified, even if currentSortedFiles is empty
+    // (might contain folder thumbnails or other important data)
+    if (modified_) {
+        // If no sorted files, there's nothing to save by path
+        if (currentSortedFiles_.empty()) {
+            modified_ = false;
+            return;
+        }
         //split thumbs by dir
         QHash<QString/*dirPath*/, QList<const ThumbData*>> thumbsByDirs;
         for (const ThumbData& td : qAsConst(currentSortedFiles_)) {
@@ -45,22 +52,54 @@ void ThumbsDiskCacher::saveThumbs()
         //save thumbs for every folder in separate thumbsFile_
         for (auto iter = thumbsByDirs.cbegin(); iter != thumbsByDirs.cend(); iter ++) {
             QDir dir(iter.key());
-            QFile f(dir.filePath(thumbsFile_));
+            QString cacheFilePath = dir.filePath(thumbsFile_);
+            QFile f(cacheFilePath);
             if (f.open(QIODevice::WriteOnly)) {
                 QDataStream ds(&f);
                 ds.setVersion(QDataStream::Qt_5_14);
+                bool writeSuccess = true;
+                
+                // Write version first
                 ds << version_;
-                for (const ThumbData* file : qAsConst(iter.value())) {
-                    auto i = thumbs_.constFind(file->filePath);
-                    if (i != thumbs_.constEnd() ) {
-                        ds << file->filePath;
-                        i->save(ds.device(), format_, quality_);
+                if (ds.status() != QDataStream::Ok) {
+                    writeSuccess = false;
+                }
+                
+                // Write thumbnails
+                if (writeSuccess) {
+                    for (const ThumbData* file : qAsConst(iter.value())) {
+                        auto i = thumbs_.constFind(file->filePath);
+                        if (i != thumbs_.constEnd() ) {
+                            ds << file->filePath;
+                            if (ds.status() != QDataStream::Ok) {
+                                writeSuccess = false;
+                                break;
+                            }
+                            if (!i->save(ds.device(), format_, quality_)) {
+                                writeSuccess = false;
+                                break;
+                            }
+                            if (ds.status() != QDataStream::Ok) {
+                                writeSuccess = false;
+                                break;
+                            }
+                        }
                     }
                 }
+                
+                f.flush();
                 f.close();
+                
+                // Only set hidden attribute if write was successful
+                // If write failed, file might be corrupted - leave it visible for easier debugging
+                if (writeSuccess) {
 #ifdef Q_OS_WIN
-                SetFileAttributesA(dir.filePath(thumbsFile_).toStdString().c_str(), FILE_ATTRIBUTE_HIDDEN);
+                    SetFileAttributesA(cacheFilePath.toStdString().c_str(), FILE_ATTRIBUTE_HIDDEN);
 #endif
+                } else {
+                    // Remove corrupted file to prevent loading invalid data next time
+                    f.remove();
+                }
             }
         }
         modified_ = false;
@@ -71,19 +110,39 @@ void ThumbsDiskCacher::saveThumbs()
 void ThumbsDiskCacher::loadThumbsInternal(QString dirPath, bool forFolder, bool *success)
 {
     if (success) *success = false;
-    QFile f(dirPath + "\\" + thumbsFile_);
+    QDir dir(dirPath);
+    QFile f(dir.filePath(thumbsFile_));
     if (f.open(QIODevice::ReadOnly)) {
         QDataStream ds(&f);
         ds.setVersion(QDataStream::Qt_5_14);
         qint8 version;
         ds >> version;
-        if (version == version_) {
-            while (!ds.atEnd()) {
-                QString path;
-                ds >> path;
-                if (path.isEmpty()) break;
-                QImage thumb;
-                thumb.load(ds.device(), format_);
+        
+        // If version doesn't match, skip this file (could be from different version)
+        // Don't delete it - might be valid for another instance
+        if (version != version_) {
+            f.close();
+            return;
+        }
+        
+        // Try to load thumbnails, handle partial corruption gracefully
+        while (!ds.atEnd()) {
+            // Check for read errors before proceeding
+            if (ds.status() != QDataStream::Ok) {
+                break;
+            }
+            
+            QString path;
+            ds >> path;
+            
+            // Check for read errors or empty path
+            if (ds.status() != QDataStream::Ok || path.isEmpty()) {
+                break;
+            }
+            
+            QImage thumb;
+            // Validate that image was loaded successfully
+            if (thumb.load(ds.device(), format_) && !thumb.isNull()) {
                 if (forFolder) {
                     thumbs_.insert(dirPath, thumb);
                     emit thumbLoaded(dirPath, thumb);
@@ -94,6 +153,14 @@ void ThumbsDiskCacher::loadThumbsInternal(QString dirPath, bool forFolder, bool 
                     emit thumbLoaded(path, thumb);
                     if (success) *success = true;
                 }
+            } else {
+                // Skip corrupted thumbnail entry, continue with next
+                // This allows partial recovery of cache file
+                // If we hit end of stream or read error, break
+                if (ds.status() != QDataStream::Ok) {
+                    break;
+                }
+                continue;
             }
         }
     }
@@ -160,7 +227,7 @@ void ThumbsDiskCacher::setCurrentFolderThumb(QImage newThumb)
 
     //load thumbs for parent folder and repalce current folder thumb to newThumb
     QList<QPair<QString, QImage>> thumbs;
-    QFile f(dir.absolutePath() + "\\" + thumbsFile_);
+    QFile f(dir.filePath(thumbsFile_));
     bool replaced = false;
     if (f.open(QIODevice::ReadOnly)) {
         QDataStream ds(&f);
@@ -192,12 +259,36 @@ void ThumbsDiskCacher::setCurrentFolderThumb(QImage newThumb)
     if (f.open(QIODevice::WriteOnly)) {
         QDataStream ds(&f);
         ds.setVersion(QDataStream::Qt_5_14);
+        bool writeSuccess = true;
+        
         ds << version_;
-        for (auto& thumb : qAsConst(thumbs)) {
-            ds << thumb.first;
-            thumb.second.save(ds.device(), format_, quality_);
+        if (ds.status() != QDataStream::Ok) {
+            writeSuccess = false;
         }
+        
+        if (writeSuccess) {
+            for (auto& thumb : qAsConst(thumbs)) {
+                ds << thumb.first;
+                if (ds.status() != QDataStream::Ok) {
+                    writeSuccess = false;
+                    break;
+                }
+                if (!thumb.second.save(ds.device(), format_, quality_)) {
+                    writeSuccess = false;
+                    break;
+                }
+                if (ds.status() != QDataStream::Ok) {
+                    writeSuccess = false;
+                    break;
+                }
+            }
+        }
+        
+        f.flush();
         f.close();
-        emit thumbLoaded(currentDirPath, newThumb);
+        
+        if (writeSuccess) {
+            emit thumbLoaded(currentDirPath, newThumb);
+        }
     }
 }
