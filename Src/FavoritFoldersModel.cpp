@@ -1,5 +1,17 @@
 #include "FavoritFoldersModel.h"
 #include <QStandardPaths>
+#include <QDir>
+
+namespace {
+int indexOfPath(const QStringList &paths, const QString &path)
+{
+    for (int i = 0; i < paths.size(); ++i) {
+        if (QString::compare(paths.at(i), path, Qt::CaseInsensitive) == 0)
+            return i;
+    }
+    return -1;
+}
+}
 
 FavoritFoldersModel::FavoritFoldersModel(QObject *parent)
     : QAbstractListModel(parent)
@@ -67,6 +79,7 @@ void FavoritFoldersModel::addFolder(QUrl folder) {
     folders_.append({name.isEmpty() ? dir.absolutePath() : name, {dir.absolutePath()}});
     endInsertRows();
     saveSettings();
+    emit foldersChanged();
 }
 
 void FavoritFoldersModel::removeFolder(int index)
@@ -78,6 +91,7 @@ void FavoritFoldersModel::removeFolder(int index)
     folders_.removeAt(index);
     endRemoveRows();
     saveSettings();
+    emit foldersChanged();
 }
 
 void FavoritFoldersModel::renameFolder(int pos, QString newName)
@@ -88,20 +102,76 @@ void FavoritFoldersModel::renameFolder(int pos, QString newName)
     folders_[pos].displayName = newName;
     emit dataChanged(index(pos), index(pos));
     saveSettings();
+    emit foldersChanged();
 }
 
 void FavoritFoldersModel::uniteWithFolder(int pos, QUrl folder)
 {
-    if (pos < 0 || pos >= folders_.size()) {
-        return;
+    addPathToFolder(pos, folder);
+}
+
+QStringList FavoritFoldersModel::getFolderPaths(int index) const
+{
+    if (index < 0 || index >= folders_.size())
+        return {};
+    return folders_.at(index).pathes;
+}
+
+bool FavoritFoldersModel::addPathToFolder(int pos, QUrl folder)
+{
+    if (pos < 0 || pos >= folders_.size() || !folder.isValid())
+        return false;
+
+    const QString localPath = folder.toLocalFile();
+    if (localPath.isEmpty())
+        return false;
+
+    QDir dir(localPath);
+    const QString normalizedPath = dir.absolutePath();
+    if (normalizedPath.isEmpty())
+        return false;
+
+    if (indexOfPath(folders_[pos].pathes, normalizedPath) >= 0) {
+        itemClicked(pos);
+        return false;
     }
-    QDir dir(folder.toLocalFile());
-    if (!folders_[pos].pathes.contains(dir.absolutePath())) {
-        folders_[pos].pathes += dir.absolutePath();
-        emit dataChanged(index(pos), index(pos));
-        saveSettings();
-    }
+
+    folders_[pos].pathes.append(normalizedPath);
+    emit dataChanged(index(pos), index(pos));
+    saveSettings();
+    emit foldersChanged();
     itemClicked(pos);
+    return true;
+}
+
+bool FavoritFoldersModel::removePathFromFolder(int pos, QString path)
+{
+    if (pos < 0 || pos >= folders_.size() || path.isEmpty())
+        return false;
+
+    if (folders_[pos].pathes.size() <= 1)
+        return false;
+
+    const QString normalizedPath = QDir(path).absolutePath();
+    const int pathIndex = indexOfPath(folders_[pos].pathes, normalizedPath);
+    if (pathIndex < 0)
+        return false;
+
+    folders_[pos].pathes.removeAt(pathIndex);
+    emit dataChanged(index(pos), index(pos));
+    saveSettings();
+    emit foldersChanged();
+    itemClicked(pos);
+    return true;
+}
+
+QStringList FavoritFoldersModel::getAllFolderPaths() const
+{
+    QStringList result;
+    for (const FavoriteFolderData& ffd : qAsConst(folders_)) {
+        result.append(ffd.pathes);
+    }
+    return result;
 }
 
 QHash<int, QByteArray> FavoritFoldersModel::roleNames() const

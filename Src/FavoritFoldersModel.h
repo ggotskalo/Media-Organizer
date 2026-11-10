@@ -29,9 +29,16 @@ public:
     Q_INVOKABLE void removeFolder(int index);
     Q_INVOKABLE void renameFolder(int index, QString newName);
     Q_INVOKABLE void uniteWithFolder(int index, QUrl folder);
+    Q_INVOKABLE QStringList getFolderPaths(int index) const;
+    Q_INVOKABLE bool addPathToFolder(int index, QUrl folder);
+    Q_INVOKABLE bool removePathFromFolder(int index, QString path);
+    
+    QList<FavoriteFolderData> getAllFolders() const { return folders_; }
+    Q_INVOKABLE QStringList getAllFolderPaths() const;
 
 signals:
     void itemSelected(FavoriteFolderData ffd);
+    void foldersChanged(); // Emitted when folders list changes
 
 protected:
     void loadSettings();
