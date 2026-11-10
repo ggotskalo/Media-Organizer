@@ -120,6 +120,11 @@ void ComponentsMediator::makeObjectsConnections()
         }
     });
 
+    //thumbsModel->dirProcessor (refresh after paste)
+    QObject::connect(&thumbsModel, &ThumbsModel::refreshRequested, &dirProcessor, [&](QStringList dirPathes){
+        dirProcessor.getUnitedDirFilesAsync(dirPathes);
+    });
+
     //thumbsModel->thumbsDiskCacher
     QObject::connect(&thumbsModel, &ThumbsModel::setItemAsThumbSignal, &thumbsDiskCacher, [&](ThumbData td){
             QImage newThumb = thumbsProvider.getImage(td.thumbSource);

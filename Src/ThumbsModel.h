@@ -30,6 +30,11 @@ class ThumbsModel : public QAbstractListModel
      Q_INVOKABLE void showShortcutInExplorer(int index);
      Q_INVOKABLE void setFilterText(const QString& filterText);
 
+     Q_INVOKABLE void copyItem(int index);
+     Q_INVOKABLE void cutItem(int index);
+     Q_INVOKABLE void pasteItems();
+     Q_INVOKABLE void pasteLinkItems();
+     Q_INVOKABLE bool canPaste() const;
      Q_INVOKABLE void removeBrokenShortcuts();
     Q_INVOKABLE void refresh();
     Q_INVOKABLE QStringList brokenShortcutPaths() const;

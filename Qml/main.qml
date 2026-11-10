@@ -206,6 +206,18 @@ Window {
                     onShowShortcutInExplorer: {
                         thumbsModel.showShortcutInExplorer(index)
                     }
+                    onCutItem: {
+                        thumbsModel.cutItem(index)
+                    }
+                    onCopyItem: {
+                        thumbsModel.copyItem(index)
+                    }
+                    onPasteItems: {
+                        thumbsModel.pasteItems()
+                    }
+                    onPasteLinkItems: {
+                        thumbsModel.pasteLinkItems()
+                    }
                 }
             }
         }
@@ -248,6 +260,24 @@ Window {
             }
         }
         
+        Shortcut {
+            sequence: StandardKey.Copy
+            onActivated: {
+                if (grid.currentIndex >= 0)
+                    thumbsModel.copyItem(grid.currentIndex)
+            }
+        }
+        Shortcut {
+            sequence: StandardKey.Cut
+            onActivated: {
+                if (grid.currentIndex >= 0)
+                    thumbsModel.cutItem(grid.currentIndex)
+            }
+        }
+        Shortcut {
+            sequence: StandardKey.Paste
+            onActivated: thumbsModel.pasteItems()
+        }
         Shortcut {
             sequence: "Ctrl+F"
             onActivated: {

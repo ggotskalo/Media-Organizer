@@ -110,6 +110,43 @@ void ThumbsModel::showShortcutInExplorer(int index)
     DiskOperations::showInExplorer(item.fileShortcutPath);
 }
 
+void ThumbsModel::copyItem(int index)
+{
+    if (index < 0 || index >= filteredThumbs_.size())
+        return;
+    DiskOperations::copyToClipboard({filteredThumbs_.at(index).filePath});
+}
+
+void ThumbsModel::cutItem(int index)
+{
+    if (index < 0 || index >= filteredThumbs_.size())
+        return;
+    DiskOperations::cutToClipboard({filteredThumbs_.at(index).filePath});
+}
+
+void ThumbsModel::pasteItems()
+{
+    if (currentDirPathes_.size() != 1)
+        return;
+    QStringList pasted = DiskOperations::pasteFromClipboard(currentDirPathes_.first());
+    if (!pasted.isEmpty())
+        emit refreshRequested(currentDirPathes_);
+}
+
+void ThumbsModel::pasteLinkItems()
+{
+    if (currentDirPathes_.size() != 1)
+        return;
+    QStringList created = DiskOperations::pasteLinkFromClipboard(currentDirPathes_.first());
+    if (!created.isEmpty())
+        emit refreshRequested(currentDirPathes_);
+}
+
+bool ThumbsModel::canPaste() const
+{
+    return currentDirPathes_.size() == 1 && DiskOperations::clipboardHasFiles();
+}
+
 QHash<int, QByteArray> ThumbsModel::roleNames() const
 {
     return { {SourceRole, "source"}, {NameRole, "name"}, {SizeRole, "size"},

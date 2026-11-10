@@ -11,6 +11,10 @@ GridView {
     signal moveToParent(var index)
     signal showInExplorer(var index)
     signal showShortcutInExplorer(var index)
+    signal cutItem(var index)
+    signal copyItem(var index)
+    signal pasteItems()
+    signal pasteLinkItems()
 
     property int thumbWidth: Style.thumbWidth
     property int thumbHeight: Style.thumbHeight
@@ -120,6 +124,25 @@ GridView {
                 MenuItem {
                     text: qsTr("Move to parent folder")
                     onTriggered: moveToParent(index)
+                }
+                MenuSeparator {}
+                MenuItem {
+                    text: qsTr("Cut")
+                    onTriggered: cutItem(index)
+                }
+                MenuItem {
+                    text: qsTr("Copy")
+                    onTriggered: copyItem(index)
+                }
+                MenuItem {
+                    text: qsTr("Paste")
+                    enabled: thumbsModel.canPaste()
+                    onTriggered: pasteItems()
+                }
+                MenuItem {
+                    text: qsTr("Paste link")
+                    enabled: thumbsModel.canPaste()
+                    onTriggered: pasteLinkItems()
                 }
             }
         }
