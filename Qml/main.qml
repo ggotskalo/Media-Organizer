@@ -127,8 +127,12 @@ Window {
                     model: thumbsModel
                     Connections {
                             target: thumbsModel
-                            onShowItem: grid.showItem(pos, newScrollPosition)
-                            onClearSelection: grid.currentIndex = -1
+                            function onShowItem(pos, newScrollPosition) {
+                                grid.showItem(pos, newScrollPosition)
+                            }
+                            function onClearSelection() {
+                                grid.currentIndex = -1
+                            }
                     }
                     onItemClicked: {
                         grid.currentIndex = index
