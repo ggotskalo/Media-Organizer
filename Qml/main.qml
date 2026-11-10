@@ -201,8 +201,16 @@ Window {
                         grid.currentIndex = index
                         thumbsModel.setItemAsThumb(index)
                     }
-                    onRemoveSelected: {
-                        thumbsModel.removeItem(index)
+                    onRemoveSelected: function(index, posX, posY) {
+                        if (thumbsModel.isFolderIndex(index)) {
+                            removeFolderConfirmDialog.indexToRemove = index
+                            var p = grid.mapToItem(window.contentItem, posX, posY)
+                            removeFolderConfirmDialog.x = Math.max(0, Math.min(window.width - removeFolderConfirmDialog.width, p.x))
+                            removeFolderConfirmDialog.y = Math.max(0, Math.min(window.height - removeFolderConfirmDialog.height, p.y))
+                            removeFolderConfirmDialog.open()
+                        } else {
+                            thumbsModel.removeItem(index)
+                        }
                     }
                     onMoveToParent: {
                         thumbsModel.moveToParent(index)
@@ -320,6 +328,29 @@ Window {
     Platform.FolderDialog {
         id: addFolderDialog
         onAccepted: foldersModel.addFolder(folder)
+    }
+
+    Dialog {
+        id: removeFolderConfirmDialog
+        modal: true
+        width: 360
+        title: qsTr("Confirm folder deletion")
+        standardButtons: Dialog.Yes | Dialog.No
+        property int indexToRemove: -1
+
+        contentItem: Label {
+            text: qsTr("Delete this folder and all its contents?")
+            wrapMode: Text.WordWrap
+            padding: 12
+            width: 320
+        }
+
+        onAccepted: {
+            if (indexToRemove >= 0)
+                thumbsModel.removeItem(indexToRemove)
+            indexToRemove = -1
+        }
+        onRejected: indexToRemove = -1
     }
 
     ImageViewerDialog {

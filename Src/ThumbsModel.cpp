@@ -88,6 +88,13 @@ void ThumbsModel::moveToParent(int index)
     }
 }
 
+bool ThumbsModel::isFolderIndex(int index) const
+{
+    if (index < 0 || index >= filteredThumbs_.size())
+        return false;
+    return filteredThumbs_.at(index).type == ThumbData::Folder;
+}
+
 void ThumbsModel::showInExplorer(int index)
 {
     if (index < 0 || index >= filteredThumbs_.size()) {

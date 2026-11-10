@@ -7,7 +7,7 @@ GridView {
     signal itemClicked(var index)
     signal itemMiddleClicked(var index)
     signal itemRightClicked(var index)
-    signal removeSelected(var index)
+    signal removeSelected(var index, var posX, var posY)
     signal moveToParent(var index)
     signal showInExplorer(var index)
     signal showShortcutInExplorer(var index)
@@ -119,7 +119,9 @@ GridView {
                 }
                 MenuItem {
                     text: qsTr("Remove")
-                    onTriggered: removeSelected(index)
+                    onTriggered: {
+                        removeSelected(index, del.x + del.width / 2, del.y + del.height / 2)
+                    }
                 }
                 MenuItem {
                     text: qsTr("Move to parent folder")

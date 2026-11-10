@@ -27,6 +27,7 @@ class ThumbsModel : public QAbstractListModel
      Q_INVOKABLE void setItemAsThumb(int index);
      Q_INVOKABLE void removeItem(int index);
      Q_INVOKABLE void moveToParent(int index);
+     Q_INVOKABLE bool isFolderIndex(int index) const;
      Q_INVOKABLE void showInExplorer(int index);
      Q_INVOKABLE void showShortcutInExplorer(int index);
      Q_INVOKABLE bool isPictureIndex(int index) const;
