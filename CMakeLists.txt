@@ -32,6 +32,7 @@ set(PROJECT_SOURCES
         Src/ThumbsDiskCacher.h Src/ThumbsDiskCacher.cpp
         Src/DiskOperations.h Src/DiskOperations.cpp
         Src/ShortcutFixer.h Src/ShortcutFixer.cpp
+        Src/DuplicateFinder.h Src/DuplicateFinder.cpp
         Src/FileIndexer.h Src/FileIndexer.cpp
         Src/StatusManager.h Src/StatusManager.cpp
 

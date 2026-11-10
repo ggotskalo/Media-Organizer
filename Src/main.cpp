@@ -17,6 +17,7 @@
 #include "FileIndexer.h"
 #include "StatusManager.h"
 #include "ShortcutFixer.h"
+#include "DuplicateFinder.h"
 
 int main(int argc, char *argv[])
 {
@@ -48,6 +49,7 @@ int main(int argc, char *argv[])
     FileIndexer fileIndexer;
     StatusManager statusManager;
     ShortcutFixer shortcutFixer;
+    DuplicateFinder duplicateFinder;
 
     ComponentsMediator componentsMediator(*thumbsProvider, dirProcessor, thumbsDiskCacher,
                            browsingNavigation, thumbsModel, foldersModel, statusManager);
@@ -87,6 +89,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("fileIndexer", &fileIndexer);
     engine.rootContext()->setContextProperty("statusManager", &statusManager);
     engine.rootContext()->setContextProperty("shortcutFixer", &shortcutFixer);
+    engine.rootContext()->setContextProperty("duplicateFinder", &duplicateFinder);
     engine.addImageProvider("thumb", thumbsProvider);
 
     engine.load(url);

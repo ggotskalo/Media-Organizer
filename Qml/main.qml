@@ -57,6 +57,15 @@ Window {
                     }
                 }
 
+                Button {
+                    Layout.fillWidth: true
+                    Layout.minimumHeight: Style.toolboxHeight
+                    text: qsTr("Find Duplicates")
+                    palette.button: "#e0e0e0"
+                    onClicked: duplicatesDialog.start(foldersModel.getAllFolderPaths())
+                }
+            }
+
             Column {
                 id: toolbox
                 
@@ -345,6 +354,10 @@ Window {
 
     BrokenShortcutsDialog {
         id: brokenShortcutsDialog
+    }
+
+    DuplicatesDialog {
+        id: duplicatesDialog
     }
 
     Dialog {
