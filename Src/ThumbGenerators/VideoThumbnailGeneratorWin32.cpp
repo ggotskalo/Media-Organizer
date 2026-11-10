@@ -86,7 +86,9 @@ HRESULT VideoThumbnailGeneratorWin32::openFile(const WCHAR* wszFileName)
     return hr;
 }
 bool VideoThumbnailGeneratorWin32::getThumbs(QString path, int count, QImage images[]) {
-    return getThumbs(path.toStdWString().c_str(), count, images);
+    // Store wstring to keep data alive during the call
+    std::wstring wpath = path.toStdWString();
+    return getThumbs(wpath.c_str(), count, images);
 }
 
 bool VideoThumbnailGeneratorWin32::getThumbs(const WCHAR* wszFileName, DWORD count, QImage images[])
@@ -111,11 +113,24 @@ bool VideoThumbnailGeneratorWin32::getThumbs(const WCHAR* wszFileName, DWORD cou
 
         assert(pRT_ != NULL);
 
-        hr = createThumbs(pRT_, 1, images);
+        hr = createThumbs(pRT_, count, images);
 
         SafeRelease(&pRT_);
 
-        if (SUCCEEDED(hr))
+        // Check if at least one image was successfully created
+        bool hasValidImage = false;
+        for (DWORD i = 0; i < count; i++)
+        {
+            if (!images[i].isNull())
+            {
+                hasValidImage = true;
+                break;
+            }
+        }
+        
+        // Return true if we have at least one valid image or if operation succeeded
+        // (some videos may succeed but return end of stream for subsequent frames)
+        if (hasValidImage || SUCCEEDED(hr))
         {
             return true;
         }
@@ -246,8 +261,14 @@ HRESULT VideoThumbnailGeneratorWin32::createThumbs(
         // several positions in the file. Occasionally, the first frame 
         // in a video is black, so we don't start at time 0.
 
-        hnsIncrement = (hnsRangeEnd - hnsRangeStart) / (count + 1);
+        hnsIncrement = (hnsRangeEnd - hnsRangeStart) / static_cast<LONGLONG>(count + 1);
 
+    }
+
+    // Initialize images array
+    for (DWORD i = 0; i < count; i++)
+    {
+        images[i] = QImage();
     }
 
     // Generate the bitmaps and invalidate the button controls so
@@ -255,13 +276,46 @@ HRESULT VideoThumbnailGeneratorWin32::createThumbs(
     for (DWORD i = 0; i < count; i++)
     {
         if (aborted_) { return -1;}
-        LONGLONG hPos = hnsIncrement * (i + 1);
+        
+        // If video doesn't support seeking, always read from start (position 0)
+        // Otherwise calculate position based on increment
+        LONGLONG hPos = bCanSeek ? (hnsIncrement * static_cast<LONGLONG>(i + 1)) : 0LL;
 
         hr = createThumb(
             pRT, 
             hPos, 
             &images[i]
         );
+        
+        // If failed to create thumb at specific position and we were seeking, 
+        // try to get first frame at position 0 as fallback
+        if (FAILED(hr) && hPos > 0 && bCanSeek)
+        {
+            LONGLONG fallbackPos = 0LL;
+            hr = createThumb(pRT, fallbackPos, &images[i]);
+        }
+        
+        // If succeeded, continue with next image
+        // If end of stream, continue (might happen for short videos or after reading)
+        // Otherwise break on other errors
+        if (SUCCEEDED(hr))
+        {
+            continue;
+        }
+        
+        if (hr == MF_E_END_OF_STREAM)
+        {
+            // End of stream - might have gotten at least some frames, continue if more needed
+            // or break if this was first attempt
+            if (i == 0)
+            {
+                break;
+            }
+            continue;
+        }
+        
+        // Other errors - stop processing
+        break;
     }
 
     return hr;
