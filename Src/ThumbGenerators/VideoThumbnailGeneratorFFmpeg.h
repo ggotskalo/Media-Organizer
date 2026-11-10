@@ -38,7 +38,7 @@ private:
     uint8_t* rgbBuffer_;
     int videoStreamIndex_;
     
-    QMutex mutex_;
+    QMutex mutex_{QMutex::Recursive};
     volatile bool aborted_;
     
     static bool ffmpegInitialized_;

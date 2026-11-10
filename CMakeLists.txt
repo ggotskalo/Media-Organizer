@@ -35,15 +35,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(QT NAMES Qt6 Qt5 COMPONENTS Core Quick REQUIRED Concurrent)
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core Quick REQUIRED Concurrent)
 
-# Find FFmpeg using Conan (optional - only needed if using FFmpeg generator)
-# Conan generates Find*.cmake files in build directory
-# Make sure to run: conan install . --build=missing
-find_package(ffmpeg QUIET)
-if(ffmpeg_FOUND)
-    message(STATUS "FFmpeg found - FFmpeg generator available")
-else()
-    message(STATUS "FFmpeg not found - only Win32 generator will be available")
-endif()
+# FFmpeg comes from Conan. From the source directory:
+# conan install . -if <build-dir> -s os=Windows -s arch=x86_64 -s build_type=Release -s compiler="Visual Studio" -s compiler.version=15 -s compiler.runtime=MD
+find_package(ffmpeg REQUIRED)
+message(STATUS "FFmpeg found - FFmpeg generator available")
 
 set(PROJECT_SOURCES
         Src/main.cpp
