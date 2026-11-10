@@ -11,6 +11,7 @@
 #include "ThumbsDiskCacher.h"
 #include "ThumbsModel.h"
 #include "ThumbsProvider.h"
+#include "ViewerImageCache.h"
 #include "ThumbsViewState.h"
 #include "Browsing/BrowsingNavigation.h"
 #include "ThumbGenerators/VideoThumbnailGeneratorWin32.h"
@@ -94,6 +95,10 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("shortcutFixer", &shortcutFixer);
     engine.rootContext()->setContextProperty("duplicateFinder", &duplicateFinder);
     engine.addImageProvider("thumb", thumbsProvider);
+
+    ViewerImageCache *viewerCache = new ViewerImageCache(&app);
+    engine.rootContext()->setContextProperty("viewerCache", viewerCache);
+    engine.addImageProvider("viewer", new ViewerImageProvider(viewerCache));
 
     engine.load(url);
 

@@ -46,6 +46,7 @@ set(PROJECT_SOURCES
 
         Src/ThumbsProviderInterface.h
         Src/ThumbsProvider.h Src/ThumbsProvider.cpp
+        Src/ViewerImageCache.h Src/ViewerImageCache.cpp
 
         Src/ThumbsModel.h Src/ThumbsModel.cpp
         Src/FavoritFoldersModel.h Src/FavoritFoldersModel.cpp

@@ -31,11 +31,15 @@ Window {
     property real selectionEndY: 0
     property int nativePixelWidth: 0
     property int pendingWheelSteps: 0
-    property var preloadPaths: []
     property string shownFullUrl: ""
-    property int appliedDecodeWidth: 0
     property bool applyingNavigation: false
     property bool viewerReady: false
+    property int shownBuffer: 0
+    property int pendingBuffer: 1
+    property string pendingUrl: ""
+    property string bufferUrl0: ""
+    property string bufferUrl1: ""
+    property bool imageFailed: false
 
     readonly property int fitDecodeWidth: Math.max(1, Math.round(width))
     readonly property int fullDecodeWidth: {
@@ -45,10 +49,6 @@ Window {
         if (nativeDips > 0)
             return Math.min(zoomed, nativeDips)
         return zoomed
-    }
-
-    function toFileUrl(path) {
-        return path.length > 0 ? "file:///" + path : ""
     }
 
     function formatSize(bytes) {
@@ -63,42 +63,84 @@ Window {
         return bytes.toFixed(0) + " B"
     }
 
-    function updatePreloadSources() {
-        const len = pictureList.length
-        if (len <= 1 || currentPicturePos < 0) {
-            preloadPaths = []
-            return
-        }
+    function pixelWidth(dips) {
+        const dpr = Screen.devicePixelRatio > 0 ? Screen.devicePixelRatio : 1
+        return Math.max(1, Math.round(dips * dpr))
+    }
 
-        const offsets = [-1, 1, 2, 3]
+    function viewUrl(path, dips) {
+        if (path.length === 0)
+            return ""
+        return "image://viewer/" + pixelWidth(dips) + "/" + encodeURIComponent(path)
+    }
+
+    function neighborPaths() {
+        const len = pictureList.length
+        if (len === 0 || currentPicturePos < 0)
+            return []
+        const offsets = [0, 1, 2, 3, -1]
         const paths = []
         const seen = {}
-        seen[pictureList[currentPicturePos]] = true
         for (let n = 0; n < offsets.length; ++n) {
-            const pos = (currentPicturePos + offsets[n] + len * 4) % len
+            const pos = (currentPicturePos + offsets[n] + len * 8) % len
             const path = pictureList[pos]
             if (seen[path])
                 continue
             seen[path] = true
             paths.push(path)
         }
-        preloadPaths = paths
+        return paths
+    }
+
+    function schedulePrefetch() {
+        if (!viewerCache || pictureList.length === 0 || currentPicturePos < 0)
+            return
+        const fit = pixelWidth(fitDecodeWidth)
+        const full = pixelWidth(fullDecodeWidth)
+        viewerCache.prefetch(neighborPaths(), fit)
+        if (full !== fit)
+            viewerCache.bump(imagePath, full)
+    }
+
+    function noteBufferStatus(buffer, status) {
+        if (buffer !== pendingBuffer)
+            return
+        if (status === Image.Error) {
+            imageFailed = true
+            return
+        }
+        if (status !== Image.Ready)
+            return
+        const url = buffer === 0 ? bufferUrl0 : bufferUrl1
+        if (url !== pendingUrl)
+            return
+        imageFailed = false
+        shownBuffer = buffer
+        shownFullUrl = url
     }
 
     function applyFullImage() {
-        if (!viewerReady)
+        if (!viewerReady || imagePath.length === 0)
             return
-        const url = toFileUrl(imagePath)
-        const decodeWidth = fullDecodeWidth
-        if (shownFullUrl !== url) {
-            fullImage.sourceSize = Qt.size(decodeWidth, 0)
-            fullImage.source = url
+        const url = viewUrl(imagePath, fullDecodeWidth)
+        if (url.length === 0 || url === shownFullUrl)
+            return
+        const next = shownBuffer === 0 ? 1 : 0
+        pendingBuffer = next
+        pendingUrl = url
+        imageFailed = false
+        const item = next === 0 ? bufferA : bufferB
+        const loadedUrl = next === 0 ? bufferUrl0 : bufferUrl1
+        if (loadedUrl === url && item.status === Image.Ready) {
+            shownBuffer = next
             shownFullUrl = url
-            appliedDecodeWidth = decodeWidth
-        } else if (appliedDecodeWidth !== decodeWidth) {
-            fullImage.sourceSize = Qt.size(decodeWidth, 0)
-            appliedDecodeWidth = decodeWidth
+            return
         }
+        if (next === 0)
+            bufferUrl0 = url
+        else
+            bufferUrl1 = url
+        item.source = url
     }
 
     function resetZoom() {
@@ -152,8 +194,8 @@ Window {
         totalPictures = pictureList.length
         currentFileSize = thumbsModel.imageFileSizeByPath(path)
         nativePixelWidth = thumbsModel.imagePixelWidth(path)
-        updatePreloadSources()
         applyingNavigation = false
+        schedulePrefetch()
         applyFullImage()
     }
 
@@ -231,9 +273,13 @@ Window {
         currentIndex = -1
         pictureList = []
         currentPicturePos = -1
-        preloadPaths = []
         shownFullUrl = ""
-        appliedDecodeWidth = 0
+        pendingUrl = ""
+        bufferUrl0 = ""
+        bufferUrl1 = ""
+        shownBuffer = 0
+        pendingBuffer = 1
+        imageFailed = false
         nativePixelWidth = 0
         pendingWheelSteps = 0
         wheelNavTimer.stop()
@@ -245,7 +291,10 @@ Window {
         panX = 0
         panY = 0
         applyingNavigation = false
-        fullImage.source = ""
+        bufferA.source = ""
+        bufferB.source = ""
+        if (viewerCache)
+            viewerCache.prefetch([], 1)
     }
 
     Component.onCompleted: viewerReady = true
@@ -253,6 +302,7 @@ Window {
     onFullDecodeWidthChanged: {
         if (!viewerReady || applyingNavigation)
             return
+        schedulePrefetch()
         applyFullImage()
     }
 
@@ -362,12 +412,37 @@ Window {
             clip: true
 
             Image {
-                id: fullImage
+                id: bufferA
                 anchors.fill: parent
+                visible: viewer.shownBuffer === 0
                 fillMode: Image.PreserveAspectFit
                 asynchronous: true
-                cache: true
-                autoTransform: true
+                cache: false
+                source: ""
+                onStatusChanged: viewer.noteBufferStatus(0, status)
+                transform: [
+                    Scale {
+                        origin.x: imageViewport.width / 2
+                        origin.y: imageViewport.height / 2
+                        xScale: viewer.zoomScale
+                        yScale: viewer.zoomScale
+                    },
+                    Translate {
+                        x: viewer.panX
+                        y: viewer.panY
+                    }
+                ]
+            }
+
+            Image {
+                id: bufferB
+                anchors.fill: parent
+                visible: viewer.shownBuffer === 1
+                fillMode: Image.PreserveAspectFit
+                asynchronous: true
+                cache: false
+                source: ""
+                onStatusChanged: viewer.noteBufferStatus(1, status)
                 transform: [
                     Scale {
                         origin.x: imageViewport.width / 2
@@ -394,24 +469,9 @@ Window {
             border.width: 1
         }
 
-        // Screen-sized neighbors: one back and three ahead.
-        Repeater {
-            id: preloadRepeater
-            model: viewer.preloadPaths
-            Image {
-                visible: false
-                asynchronous: true
-                cache: true
-                autoTransform: true
-                sourceSize.width: viewer.fitDecodeWidth
-                sourceSize.height: 0
-                source: viewer.toFileUrl(modelData)
-            }
-        }
-
         Label {
             anchors.centerIn: parent
-            visible: viewer.imagePath.length === 0 || fullImage.status === Image.Error
+            visible: viewer.imageFailed
             color: "white"
             text: qsTr("Unable to display image")
         }
@@ -435,10 +495,12 @@ Window {
                 text: qsTr("%1/%2   %3x%4   %5")
                     .arg(viewer.currentOrdinal)
                     .arg(viewer.totalPictures)
-                    .arg(fullImage.implicitWidth > 0 ? fullImage.implicitWidth :
-                         (fullImage.sourceSize.width > 0 ? fullImage.sourceSize.width : 0))
-                    .arg(fullImage.implicitHeight > 0 ? fullImage.implicitHeight :
-                         (fullImage.sourceSize.height > 0 ? fullImage.sourceSize.height : 0))
+                    .arg(viewer.shownBuffer === 0
+                         ? (bufferA.implicitWidth > 0 ? bufferA.implicitWidth : 0)
+                         : (bufferB.implicitWidth > 0 ? bufferB.implicitWidth : 0))
+                    .arg(viewer.shownBuffer === 0
+                         ? (bufferA.implicitHeight > 0 ? bufferA.implicitHeight : 0)
+                         : (bufferB.implicitHeight > 0 ? bufferB.implicitHeight : 0))
                     .arg(viewer.formatSize(viewer.currentFileSize))
             }
         }
