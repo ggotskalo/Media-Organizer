@@ -13,6 +13,7 @@
 #include "Browsing/BrowsingNavigation.h"
 #include "ThumbGenerators/VideoThumbnailGeneratorWin32.h"
 #include "StatusManager.h"
+#include "ShortcutFixer.h"
 
 int main(int argc, char *argv[])
 {
@@ -42,12 +43,16 @@ int main(int argc, char *argv[])
     ThumbsModel thumbsModel;
     FavoritFoldersModel foldersModel;
     StatusManager statusManager;
+    ShortcutFixer shortcutFixer;
 
     ComponentsMediator componentsMediator(*thumbsProvider, dirProcessor, thumbsDiskCacher,
                            browsingNavigation, thumbsModel, foldersModel, statusManager);
     componentsMediator.registerMetaTypes();
     componentsMediator.makeObjectsConnections();
     
+    QObject::connect(&shortcutFixer, &ShortcutFixer::refreshRequested,
+                     &thumbsModel, &ThumbsModel::refresh);
+
     QQmlApplicationEngine engine;
     const QUrl url(QStringLiteral("qrc:/main.qml"));
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
@@ -60,6 +65,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("foldersModel", &foldersModel);
     engine.rootContext()->setContextProperty("browsing", &browsingNavigation);
     engine.rootContext()->setContextProperty("statusManager", &statusManager);
+    engine.rootContext()->setContextProperty("shortcutFixer", &shortcutFixer);
     engine.addImageProvider("thumb", thumbsProvider);
 
     engine.load(url);

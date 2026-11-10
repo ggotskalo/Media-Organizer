@@ -150,6 +150,19 @@ Window {
                         onClicked: browsing.goNextFolder()
                     }
 
+                    BigToolButton {
+                        visible: thumbsModel.brokenShortcutsCount > 0
+                        text: qsTr("Dead links: %1").arg(thumbsModel.brokenShortcutsCount)
+                        onClicked: {
+                            brokenShortcutsDialog.start(
+                                thumbsModel.brokenShortcutPaths(),
+                                thumbsModel.brokenTargetNames(),
+                                foldersModel.getAllFolderPaths()
+                            )
+                        }
+                        palette.button: "#ffe0e0"
+                    }
+
                     Label {
                         id: dir
 
@@ -328,6 +341,10 @@ Window {
     Platform.FolderDialog {
         id: addFolderDialog
         onAccepted: foldersModel.addFolder(folder)
+    }
+
+    BrokenShortcutsDialog {
+        id: brokenShortcutsDialog
     }
 
     Dialog {
