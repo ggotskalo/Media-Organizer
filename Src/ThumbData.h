@@ -15,10 +15,12 @@ struct ThumbData {
     bool operator<(const ThumbData& td) const {return td.filePath < filePath;}
     QString displayName;
     QString filePath;
+    QString fileShortcutPath;
     Type type;
     QString thumbSource;
     qint64 size = 0;
     bool noThumb = false;
+    bool isBrokenShortcut = false;
 };
 
 Q_DECLARE_METATYPE(ThumbData)

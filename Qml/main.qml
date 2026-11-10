@@ -151,6 +151,9 @@ Window {
                     onShowInExplorer: {
                         thumbsModel.showInExplorer(index)
                     }
+                    onShowShortcutInExplorer: {
+                        thumbsModel.showShortcutInExplorer(index)
+                    }
                 }
             }
         }

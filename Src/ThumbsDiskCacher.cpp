@@ -41,7 +41,7 @@ void ThumbsDiskCacher::saveThumbs()
         for (const ThumbData& td : qAsConst(currentSortedFiles_)) {
             if (td.noThumb)
                 continue;
-            QFileInfo fi(td.filePath);
+            QFileInfo fi(td.fileShortcutPath);
             QString path = fi.absolutePath();
             if (thumbsByDirs.contains(path)) {
                 thumbsByDirs[path].append(&td);

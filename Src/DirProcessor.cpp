@@ -79,7 +79,7 @@ void DirProcessor::generateThumbnail(QString path)
     }
     QFileInfo fi(path);
     QString file = fi.fileName();
-    ThumbData thumbData = {file, path, getFileType(fi), path, 0};
+    ThumbData thumbData = {file, path, path, getFileType(fi), path, 0};
     emit fileProcessed(path, "", true);
     {
         QMutexLocker lock(&pathesProcessingMutex_);
@@ -165,12 +165,25 @@ bool DirProcessor::getUnitedDirFiles(QStringList dirPathes, QList<ThumbData> &th
     }
 
     QFileInfoList files;
+    QSet<QString> knownPaths;
     for (const QString& dirPath : qAsConst(dirPathes)) {
-        QDir currentDir;
-        currentDir.setPath(dirPath);
-        files.append(currentDir.entryInfoList({},
+        QDir currentDir(dirPath);
+        QFileInfoList entries = currentDir.entryInfoList({},
                                                        QDir::Files | QDir::AllDirs | QDir::NoDotAndDotDot,
-                                                       QDir::Unsorted));
+                                                       QDir::Unsorted);
+        for (const QFileInfo& fi : qAsConst(entries))
+            knownPaths.insert(fi.absoluteFilePath());
+        files.append(entries);
+
+        // Broken .lnk files are excluded by QDir::Files on Windows (target doesn't exist),
+        // so scan for them separately via QDir::System
+        QFileInfoList lnkFiles = currentDir.entryInfoList({"*.lnk"},
+                                                       QDir::System | QDir::NoDotAndDotDot,
+                                                       QDir::Unsorted);
+        for (const QFileInfo& lnkInfo : qAsConst(lnkFiles)) {
+            if (!knownPaths.contains(lnkInfo.absoluteFilePath()))
+                files.append(lnkInfo);
+        }
     }
 
     std::stable_sort(files.begin(), files.end(), [](const QFileInfo& a, const QFileInfo& b){
@@ -188,28 +201,33 @@ bool DirProcessor::getUnitedDirFiles(QStringList dirPathes, QList<ThumbData> &th
     if (dirPathes.size() == 1) {
         QDir dir(dirPathes.first());
         if (dir.cdUp()) {
-            thumbsOut.prepend({"..", dir.absolutePath(), ThumbData::Folder, "", 0, true});
+            thumbsOut.prepend({"..", dir.absolutePath(), dir.absolutePath(), ThumbData::Folder, "", 0, true});
         }
     }
 
-    for (QFileInfo& fileInfo : files) {
-        if (fileInfo.isShortcut()) {
-            fileInfo.setFile(fileInfo.symLinkTarget());
-        }
-    }
-    for (const QFileInfo& fileInfo : qAsConst(files)) {
+    for (const QFileInfo& fileInfoReal : qAsConst(files)) {
+
+        bool isShortcut = fileInfoReal.isShortcut();
+        QFileInfo fileInfo = isShortcut ? QFileInfo(fileInfoReal.symLinkTarget()) : fileInfoReal;
+        bool brokenShortcut = isShortcut && !fileInfo.exists();
 
         ThumbData::Type type = getFileType(fileInfo);
         QString name = fileInfo.fileName();
         QString path = fileInfo.absoluteFilePath();
+        QString fileShortcutPath = fileInfoReal.absoluteFilePath();
+
+        if (brokenShortcut) {
+            thumbsOut.append({name, path, fileShortcutPath, type, "", 0, false, true});
+            continue;
+        }
 
         if (thumbsProvider_->haveThumb(path)) {
 
-            thumbsOut.append({name, path, type, path, fileInfo.size()});
+            thumbsOut.append({name, path, fileShortcutPath, type, path, fileInfo.size()});
 
         } else {
 
-            thumbsOut.append({name, path, type, "", fileInfo.size()});
+            thumbsOut.append({name, path, fileShortcutPath, type, "", fileInfo.size()});
 
             if (type == ThumbData::Folder) {
                 //for folder without thumb make thumb from first suitable file from folder
@@ -224,10 +242,10 @@ bool DirProcessor::getUnitedDirFiles(QStringList dirPathes, QList<ThumbData> &th
                     }
                     QFileInfo found = getMostSuitable(folderFiles);
                     ThumbData::Type foundThumbType = getFileType(found);
-                    thumbsForGeneration_.append({name, path, foundThumbType, found.absoluteFilePath(), fileInfo.size()});
+                    thumbsForGeneration_.append({name, path, fileShortcutPath, foundThumbType, found.absoluteFilePath(), fileInfo.size()});
                 }
             } else {
-                thumbsForGeneration_.append({name, path, type, path, fileInfo.size()});
+                thumbsForGeneration_.append({name, path, fileShortcutPath, type, path, fileInfo.size()});
             }
             if (allHaveThumbs) *allHaveThumbs = false;
 

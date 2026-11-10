@@ -10,6 +10,7 @@ GridView {
     signal removeSelected(var index)
     signal moveToParent(var index)
     signal showInExplorer(var index)
+    signal showShortcutInExplorer(var index)
 
     property int thumbWidth: Style.thumbWidth
     property int thumbHeight: Style.thumbHeight
@@ -52,7 +53,7 @@ GridView {
         id: del
         width: grid.cellWidth - gap
         height: grid.cellHeight - gap
-        color: "transparent"
+        color: model.isBrokenShortcut ? "#ffe0e0" : model.isShortcut ? "#e8e8e8" : "transparent"
         border.color: "black"
         border.width: grid.border
         Image {
@@ -106,6 +107,11 @@ GridView {
                 MenuItem {
                     text: qsTr("Show")
                     onTriggered: showInExplorer(index)
+                }
+                MenuItem {
+                    text: qsTr("Show shortcut (.lnk)")
+                    visible: model.isShortcut
+                    onTriggered: showShortcutInExplorer(index)
                 }
                 MenuItem {
                     text: qsTr("Remove")
