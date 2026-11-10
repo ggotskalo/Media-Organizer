@@ -114,7 +114,7 @@ GridView {
                 }
                 MenuItem {
                     text: qsTr("Show shortcut (.lnk)")
-                    visible: model.isShortcut
+                    enabled: model.isShortcut
                     onTriggered: showShortcutInExplorer(index)
                 }
                 MenuItem {
