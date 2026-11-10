@@ -128,10 +128,6 @@ void ComponentsMediator::makeObjectsConnections()
 
 void ComponentsMediator::finalize()
 {
-    //save unsaved generated thumbs
-    QMetaObject::invokeMethod(&thumbsDiskCacher, [&](){
-        thumbsDiskCacher.saveThumbs();
-    }, Qt::BlockingQueuedConnection);
 
     //cancel working thumbnail generators
     QMetaObject::invokeMethod(&dirProcessor, [&](){
@@ -139,6 +135,10 @@ void ComponentsMediator::finalize()
     }, Qt::BlockingQueuedConnection);
     dirProcessor.waitFinished();
 
+    //save unsaved generated thumbs
+    QMetaObject::invokeMethod(&thumbsDiskCacher, [&](){
+        thumbsDiskCacher.saveThumbs();
+    }, Qt::BlockingQueuedConnection);
 }
 
 QStringList ComponentsMediator::extractDirPathesFromState(ThumbsViewState& state)

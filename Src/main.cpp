@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
 
     //stopping
     componentsMediator.finalize();
-    dirProcessorThread.terminate();
+    dirProcessorThread.quit();
     dirProcessorThread.wait();
 
     return res;
