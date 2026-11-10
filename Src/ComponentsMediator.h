@@ -8,6 +8,7 @@
 #include "ThumbsProvider.h"
 #include "ThumbsViewState.h"
 #include "Browsing/BrowsingNavigation.h"
+#include "StatusManager.h"
 
 #include <QObject>
 
@@ -21,6 +22,7 @@ public:
                                 BrowsingNavigation& browsingNavigation,
                                 ThumbsModel& thumbsModel,
                                 FavoritFoldersModel& foldersModel,
+                                StatusManager& statusManager,
                                 QObject *parent = nullptr);
 
     void registerMetaTypes();
@@ -38,6 +40,7 @@ protected:
     BrowsingNavigation& browsingNavigation;
     ThumbsModel& thumbsModel;
     FavoritFoldersModel& foldersModel;
+    StatusManager& statusManager;
 };
 
 #endif // COMPONENTSMEDIATOR_H

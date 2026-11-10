@@ -31,6 +31,7 @@ set(PROJECT_SOURCES
         Src/DirProcessor.h Src/DirProcessor.cpp
         Src/ThumbsDiskCacher.h Src/ThumbsDiskCacher.cpp
         Src/DiskOperations.h Src/DiskOperations.cpp
+        Src/StatusManager.h Src/StatusManager.cpp
 
         Src/ThumbGenerators/VideoThumbnailGeneratorInterface.h
         Src/ThumbGenerators/VideoThumbnailGeneratorWin32.h Src/ThumbGenerators/VideoThumbnailGeneratorWin32.cpp

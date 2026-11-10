@@ -3,6 +3,9 @@
 #include <QDir>
 #include <QImageReader>
 #include <QMetaObject>
+#include <QFileInfo>
+#include <QtConcurrent>
+#include <QThread>
 #include <algorithm>
 
 DirProcessor::DirProcessor(ThumbsProviderInterface* thumbsProvider, VideoThumbnailGeneratorFactory& factory) :
@@ -23,6 +26,7 @@ DirProcessor::DirProcessor(ThumbsProviderInterface* thumbsProvider, VideoThumbna
     });
     connect(thumbsCreating_, &QFutureWatcher<QImage>::finished, this, [this]() {
                 emit allFilesProcessed(thumbsForGeneration_);
+                emit statusChanged("");
         }
     );
 
@@ -55,9 +59,11 @@ void DirProcessor::startGeneratingThumbnails(QStringList excludePathes)
     
     if (thumbsForGeneration_.isEmpty()) {
         emit allFilesProcessed(thumbsForGeneration_);
+        emit statusChanged("");
         return;
     }
     
+    emit statusChanged(QString("Generating thumbnails: %1 files").arg(thumbsForGeneration_.size()));
     thumbsCreating_->setFuture(QtConcurrent::mapped(thumbsForGeneration_, std::bind(&DirProcessor::makeThumb,
                                                                   this,
                                                                   std::placeholders::_1)));
@@ -117,6 +123,45 @@ bool DirProcessor::getUnitedDirFiles(QStringList dirPathes, QList<ThumbData> &th
     QStringList filter;
     foreach (const QString& ext, videoExt_ + pictExt_ + linkExt_) {
         filter << "*." + ext;
+    }
+
+    // Wake up sleeping HDDs in parallel before reading files
+    // This prevents sequential spin-up delays when multiple drives are sleeping
+    if (dirPathes.size() > 1) {
+        emit statusChanged(QString("Waking up %1 drives...").arg(dirPathes.size()));
+    } else {
+        emit statusChanged("Waking up drive...");
+    }
+    
+    QList<QFuture<void>> wakeupFutures;
+    for (const QString& dirPath : qAsConst(dirPathes)) {
+        QFuture<void> future = QtConcurrent::run([dirPath]() {
+            // Access directory to wake up HDD if sleeping
+            QFileInfo dirInfo(dirPath);
+            if (dirInfo.exists()) {
+                // Try to access directory to trigger disk spin-up
+                QDir dir(dirPath);
+                dir.exists(); // This will wake up the disk if sleeping
+            }
+        });
+        wakeupFutures.append(future);
+    }
+    
+    constexpr int wakeupTimeoutMs = 15000;
+    constexpr int pollIntervalMs = 100;
+    int completed = 0;
+    for (auto& future : wakeupFutures) {
+        int elapsed = 0;
+        while (!future.isFinished() && elapsed < wakeupTimeoutMs && !canceled_) {
+            QThread::msleep(pollIntervalMs);
+            elapsed += pollIntervalMs;
+        }
+        if (canceled_)
+            return false;
+        completed++;
+        if (dirPathes.size() > 1) {
+            emit statusChanged(QString("Waking up drives... %1/%2").arg(completed).arg(dirPathes.size()));
+        }
     }
 
     QFileInfoList files;
@@ -224,10 +269,13 @@ void DirProcessor::getUnitedDirFilesAsync(QStringList dirPathes)
         QMetaObject::invokeMethod(this, [this, dirPathes]{getUnitedDirFilesAsync(dirPathes);}, Qt::QueuedConnection);
         return;
     }
+    QString pathText = dirPathes.size() == 1 ? dirPathes.first() : QString::number(dirPathes.size()) + " folders";
+    emit statusChanged(QString("Loading files from: %1").arg(pathText));
     QList<ThumbData> thumbsOut;
     bool allHaveThumbs;
     bool ret = getUnitedDirFiles(dirPathes, thumbsOut, &allHaveThumbs);
     emit getDirFilesAsyncResponce(dirPathes, thumbsOut, ret, allHaveThumbs);
+    emit statusChanged("");
 }
 
 ThumbData::Type DirProcessor::getFileType(const QFileInfo& fileInfo)

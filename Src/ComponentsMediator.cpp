@@ -9,6 +9,7 @@ ComponentsMediator::ComponentsMediator(ThumbsProvider& thumbsProvider2,
                                        BrowsingNavigation& browsingNavigation2,
                                        ThumbsModel& thumbsModel2,
                                        FavoritFoldersModel& foldersModel2,
+                                       StatusManager& statusManager2,
                                        QObject *parent)
     : QObject{parent},
       thumbsProvider(thumbsProvider2),
@@ -16,7 +17,8 @@ ComponentsMediator::ComponentsMediator(ThumbsProvider& thumbsProvider2,
       thumbsDiskCacher(thumbsDiskCacher2),
       browsingNavigation(browsingNavigation2),
       thumbsModel(thumbsModel2),
-      foldersModel(foldersModel2)
+      foldersModel(foldersModel2),
+      statusManager(statusManager2)
 {
 
 }
@@ -72,6 +74,7 @@ void ComponentsMediator::makeObjectsConnections()
             dirProcessor.getUnitedDirFilesAsync(ffd.pathes);
         }
     );
+    
 
     //=====Thumbs disk caching
     //dirProcessor->thumbsDiskCacher
@@ -100,6 +103,9 @@ void ComponentsMediator::makeObjectsConnections()
 
     //thumbsDiskCacher->dirProcessor
     QObject::connect(&thumbsDiskCacher, &ThumbsDiskCacher::allThumbsLoaded, &dirProcessor, &DirProcessor::startGeneratingThumbnails);
+    
+    //dirProcessor->statusManager
+    QObject::connect(&dirProcessor, &DirProcessor::statusChanged, &statusManager, &StatusManager::setStatus);
 
     //thumbsProvider->thumbsDiskCacher
     QObject::connect(&thumbsProvider, &ThumbsProvider::thumbRequired, &thumbsDiskCacher, [&](const QString path){

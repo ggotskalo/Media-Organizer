@@ -3,7 +3,6 @@
 #include <QQmlContext>
 #include <QScreen>
 #include <QWindow>
-
 #include "ComponentsMediator.h"
 #include "DirProcessor.h"
 #include "FavoritFoldersModel.h"
@@ -13,6 +12,7 @@
 #include "ThumbsViewState.h"
 #include "Browsing/BrowsingNavigation.h"
 #include "ThumbGenerators/VideoThumbnailGeneratorWin32.h"
+#include "StatusManager.h"
 
 int main(int argc, char *argv[])
 {
@@ -41,12 +41,13 @@ int main(int argc, char *argv[])
     BrowsingNavigation browsingNavigation;
     ThumbsModel thumbsModel;
     FavoritFoldersModel foldersModel;
+    StatusManager statusManager;
 
     ComponentsMediator componentsMediator(*thumbsProvider, dirProcessor, thumbsDiskCacher,
-                           browsingNavigation, thumbsModel, foldersModel);
+                           browsingNavigation, thumbsModel, foldersModel, statusManager);
     componentsMediator.registerMetaTypes();
     componentsMediator.makeObjectsConnections();
-
+    
     QQmlApplicationEngine engine;
     const QUrl url(QStringLiteral("qrc:/main.qml"));
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
@@ -58,6 +59,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("thumbsModel", &thumbsModel);
     engine.rootContext()->setContextProperty("foldersModel", &foldersModel);
     engine.rootContext()->setContextProperty("browsing", &browsingNavigation);
+    engine.rootContext()->setContextProperty("statusManager", &statusManager);
     engine.addImageProvider("thumb", thumbsProvider);
 
     engine.load(url);

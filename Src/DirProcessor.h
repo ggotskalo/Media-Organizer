@@ -40,6 +40,7 @@ signals:
     void fileProcessed(QString filePath, QString thumbSource, bool success);
     void allFilesProcessed(QList<ThumbData> files);
     void getDirFilesAsyncResponce(QStringList dirPathes, QList<ThumbData> sortedDirFiles, bool success, bool allHaveThumbs);
+    void statusChanged(QString status);
 
 protected:
     QImage makeThumb(ThumbData thumbData);

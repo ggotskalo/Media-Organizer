@@ -14,12 +14,16 @@ Window {
     title: qsTr("Media Organizer")
 
     Item {
-
+        id: mainItem
         anchors.fill: parent
+        focus: true
 
-        SplitView {
-
-            anchors.fill: parent
+            SplitView {
+            
+            anchors {
+                fill: parent
+                bottomMargin: statusBar.height
+            }
             orientation: Qt.Horizontal
 
             ColumnLayout {
@@ -52,12 +56,11 @@ Window {
                         foldersModel.itemClicked(index)
                     }
                 }
-            }
 
             Column {
                 id: toolbox
-
-                height: Style.toolboxHeight
+                
+                width: parent.width
 
                 RowLayout {
                     id: toolboxRow
@@ -142,9 +145,6 @@ Window {
                         grid.currentIndex = index
                         thumbsModel.setItemAsThumb(index)
                     }
-                    onRemoveSelected: {
-                        thumbsModel.removeItem(index)
-                    }
                     onMoveToParent: {
                         thumbsModel.moveToParent(index)
                     }
@@ -154,12 +154,45 @@ Window {
                 }
             }
         }
+        
+        // Status bar at the bottom
+        Rectangle {
+            id: statusBar
+            anchors {
+                left: parent.left
+                right: parent.right
+                bottom: parent.bottom
+            }
+            height: statusText.text.length > 0 ? 25 : 0
+            color: "#f0f0f0"
+            border.color: "#d0d0d0"
+            border.width: 1
+            
+            Behavior on height {
+                NumberAnimation { duration: 150 }
+            }
+            
+            Label {
+                id: statusText
+                anchors {
+                    left: parent.left
+                    right: parent.right
+                    verticalCenter: parent.verticalCenter
+                    margins: 5
+                }
+                text: statusManager.statusText
+                elide: Text.ElideRight
+                color: "#333"
+            }
+        }
+        
         Keys.onPressed: {
-                 if (event.key == Qt.Key_Backspace) {
-                     browsing.goBack();
-                     event.accepted = true;
-                 }
-             }
+            if (event.key == Qt.Key_Backspace) {
+                browsing.goBack();
+                event.accepted = true;
+            }
+        }
+        
         MouseArea {
             anchors.fill: parent
             acceptedButtons: Qt.BackButton | Qt.ForwardButton
