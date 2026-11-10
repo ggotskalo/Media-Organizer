@@ -4,6 +4,7 @@
 
 ThumbsModel::ThumbsModel(QObject *parent) : QAbstractListModel(parent)
     , selectedThumbIndex_(-1)
+    , filterText_("")
 {    
 }
 
@@ -18,7 +19,8 @@ void ThumbsModel::listReceived(QStringList dirPath, QList<ThumbData> thumbs, boo
     int pos = 0;
     pathToPosition_.clear();
     thumbs_ = thumbs;
-    for (const ThumbData& thumb : qAsConst(thumbs_)) {
+    updateFilter();
+    for (const ThumbData& thumb : qAsConst(filteredThumbs_)) {
         pathToPosition_.insert(thumb.filePath, pos++);
     }
     selectedThumbIndex_ = -1;
@@ -27,58 +29,85 @@ void ThumbsModel::listReceived(QStringList dirPath, QList<ThumbData> thumbs, boo
 }
 
 void ThumbsModel::selectItem(int index) {
-    if (index < 0 || index >= thumbs_.size()) {
+    if (index < 0 || index >= filteredThumbs_.size()) {
         return;
     }
-    selectedThumbIndex_ =  index;
-    ThumbData &td = thumbs_[index];
+    selectedThumbIndex_ = index;
+    ThumbData &td = filteredThumbs_[index];
     emit itemSelected(td);
 }
 
 void ThumbsModel::setItemAsThumb(int index) {
-    if (index < 0 || index >= thumbs_.size()) {
+    if (index < 0 || index >= filteredThumbs_.size()) {
         return;
     }
-    ThumbData &td = thumbs_[index];
+    ThumbData &td = filteredThumbs_[index];
     emit setItemAsThumbSignal(td);
 }
 
 void ThumbsModel::removeItem(int index) {
-    if (index < 0 || index >= thumbs_.size()) {
+    if (index < 0 || index >= filteredThumbs_.size()) {
         return;
     }
-    const ThumbData item = thumbs_.at(index);
+    const ThumbData item = filteredThumbs_.at(index);
     const bool isShortcut = (item.filePath != item.fileShortcutPath);
     const QString pathToRemove = isShortcut ? item.fileShortcutPath : item.filePath;
 
     if (DiskOperations::remove(pathToRemove)) {
-        beginRemoveRows(QModelIndex(), index, index);
-        thumbs_.removeAt(index);
-        endRemoveRows();
+        // Find and remove from original list
+        for (int i = 0; i < thumbs_.size(); ++i) {
+            if (thumbs_[i].fileShortcutPath == item.fileShortcutPath) {
+                thumbs_.removeAt(i);
+                break;
+            }
+        }
+        updateFilter();
+        beginResetModel();
+        endResetModel();
         updateBrokenShortcutsCount();
     }
 }
 
 void ThumbsModel::moveToParent(int index)
 {
-    if (index < 0 || index >= thumbs_.size()) {
+    if (index < 0 || index >= filteredThumbs_.size()) {
         return;
     }
-    QString path = thumbs_.at(index).filePath;
+    QString path = filteredThumbs_.at(index).filePath;
     if (DiskOperations::moveToParentFolder(path)) {
-        beginRemoveRows(QModelIndex(), index, index);
-        thumbs_.removeAt(index);
-        endRemoveRows();
+        // Find and remove from original list
+        for (int i = 0; i < thumbs_.size(); ++i) {
+            if (thumbs_[i].filePath == path) {
+                thumbs_.removeAt(i);
+                break;
+            }
+        }
+        updateFilter();
+        beginResetModel();
+        endResetModel();
     }
 }
 
 void ThumbsModel::showInExplorer(int index)
 {
-    if (index < 0 || index >= thumbs_.size()) {
+    if (index < 0 || index >= filteredThumbs_.size()) {
         return;
     }
-    QString path = thumbs_.at(index).filePath;
+    QString path = filteredThumbs_.at(index).filePath;
     DiskOperations::showInExplorer(path);
+}
+
+void ThumbsModel::showShortcutInExplorer(int index)
+{
+    if (index < 0 || index >= filteredThumbs_.size()) {
+        return;
+    }
+    const ThumbData &item = filteredThumbs_.at(index);
+    const bool isShortcut = item.filePath != item.fileShortcutPath;
+    if (!isShortcut)
+        return;
+
+    DiskOperations::showInExplorer(item.fileShortcutPath);
 }
 
 QHash<int, QByteArray> ThumbsModel::roleNames() const
@@ -92,14 +121,14 @@ QHash<int, QByteArray> ThumbsModel::roleNames() const
 
 int ThumbsModel::rowCount(const QModelIndex &parent) const
 {
-    return thumbs_.count();    
+    return filteredThumbs_.count();    
 }
 
 QVariant ThumbsModel::data(const QModelIndex &index, int role) const
 {
-    if (index.row() < 0 || index.row() > thumbs_.count())
+    if (index.row() < 0 || index.row() >= filteredThumbs_.count())
         return QVariant();
-    const ThumbData& td = thumbs_.at(index.row());
+    const ThumbData& td = filteredThumbs_.at(index.row());
     switch (role) {
         case SourceRole:
             return td.noThumb? "" : td.thumbSource;
@@ -119,32 +148,74 @@ QVariant ThumbsModel::data(const QModelIndex &index, int role) const
 
 void ThumbsModel::showThumb(QString filePath, QString thumbSource, bool success)
 {
+    // Update in original list
+    for (int i = 0; i < thumbs_.size(); ++i) {
+        if (thumbs_[i].filePath == filePath) {
+            if (thumbs_[i].thumbSource == thumbSource) {
+                //force image update
+                thumbs_[i].thumbSource = "";
+            }
+            thumbs_[i].thumbSource = thumbSource;
+            break;
+        }
+    }
+    
+    // Update in filtered list and emit dataChanged
     auto iter = pathToPosition_.constFind(filePath);
     if (iter != pathToPosition_.constEnd()) {
         int pos = *iter;
-        if (pos >=0 && pos < thumbs_.size()) {
-            if (thumbs_[pos].thumbSource == thumbSource) {
+        if (pos >= 0 && pos < filteredThumbs_.size()) {
+            if (filteredThumbs_[pos].thumbSource == thumbSource) {
                 //force image update
-                thumbs_[pos].thumbSource = "";
+                filteredThumbs_[pos].thumbSource = "";
                 emit dataChanged(index(pos), index(pos));
             }
-            thumbs_[pos].thumbSource = thumbSource;
+            filteredThumbs_[pos].thumbSource = thumbSource;
             emit dataChanged(index(pos), index(pos));
         }
     }
 }
 
-void ThumbsModel::showShortcutInExplorer(int index)
+void ThumbsModel::setFilterText(const QString& filterText)
 {
-    if (index < 0 || index >= thumbs_.size()) {
-        return;
+    if (filterText_ != filterText) {
+        filterText_ = filterText;
+        beginResetModel();
+        updateFilter();
+        pathToPosition_.clear();
+        int pos = 0;
+        for (const ThumbData& thumb : qAsConst(filteredThumbs_)) {
+            pathToPosition_.insert(thumb.filePath, pos++);
+        }
+        selectedThumbIndex_ = -1;
+        endResetModel();
+        emit filterTextChanged();
     }
-    const ThumbData &item = thumbs_.at(index);
-    const bool isShortcut = item.filePath != item.fileShortcutPath;
-    if (!isShortcut)
-        return;
+}
 
-    DiskOperations::showInExplorer(item.fileShortcutPath);
+void ThumbsModel::updateFilter()
+{
+    filteredThumbs_.clear();
+    if (filterText_.isEmpty()) {
+        filteredThumbs_ = thumbs_;
+    } else {
+        QString lowerFilter = filterText_.toLower();
+        for (const ThumbData& thumb : qAsConst(thumbs_)) {
+            if (matchesFilter(thumb)) {
+                filteredThumbs_.append(thumb);
+            }
+        }
+    }
+}
+
+bool ThumbsModel::matchesFilter(const ThumbData& thumb) const
+{
+    if (filterText_.isEmpty()) {
+        return true;
+    }
+    QString lowerFilter = filterText_.toLower();
+    QString lowerName = thumb.displayName.toLower();
+    return lowerName.contains(lowerFilter);
 }
 
 void ThumbsModel::updateBrokenShortcutsCount()
@@ -201,6 +272,7 @@ void ThumbsModel::removeBrokenShortcuts()
         thumbs_.erase(std::remove_if(thumbs_.begin(), thumbs_.end(),
             [](const ThumbData& td) { return td.isBrokenShortcut; }), thumbs_.end());
         beginResetModel();
+        updateFilter();
         endResetModel();
         updateBrokenShortcutsCount();
     }

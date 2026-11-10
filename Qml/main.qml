@@ -63,6 +63,58 @@ Window {
                 width: parent.width
 
                 RowLayout {
+                    id: filterRow
+                    width: parent.width
+                    height: 35
+                    spacing: 0
+                    visible: false
+                    
+                    TextField {
+                        id: filterField
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        placeholderText: qsTr("Filter files...")
+                        selectByMouse: true
+                        rightPadding: clearButton.visible ? clearButton.width + 5 : 5
+                        
+                        onTextChanged: {
+                            thumbsModel.filterText = text
+                        }
+                        
+                        Keys.onEscapePressed: {
+                            text = ""
+                            focus = false
+                            filterRow.visible = false
+                        }
+                        
+                        // Clear button (X icon) inside TextField
+                        Text {
+                            id: clearButton
+                            anchors {
+                                right: parent.right
+                                rightMargin: 8
+                                verticalCenter: parent.verticalCenter
+                            }
+                            visible: filterField.text.length > 0
+                            text: "×"
+                            font.pixelSize: 20
+                            color: "#666"
+                            height: parent.height
+                            verticalAlignment: Text.AlignVCenter
+                            
+                            MouseArea {
+                                anchors.fill: parent
+                                anchors.margins: -5
+                                onClicked: {
+                                    filterField.text = ""
+                                    filterField.focus = true
+                                }
+                            }
+                        }
+                    }
+                }
+
+                RowLayout {
                     id: toolboxRow
                     width: parent.width
                     height: Style.toolboxHeight
@@ -123,7 +175,7 @@ Window {
                     id: grid
 
                     width: parent.width
-                    height: parent.height - Style.toolboxHeight
+                    height: parent.height - Style.toolboxHeight - (filterRow.visible ? filterRow.height : 0)
                     clip: true
                     onScrollPositionChanged: browsing.setScrollPos(scrollPosition)
 
@@ -196,6 +248,25 @@ Window {
             }
         }
         
+        Shortcut {
+            sequence: "Ctrl+F"
+            onActivated: {
+                if (filterRow.visible) {
+                    // Hide filter: clear text first
+                    filterField.text = ""
+                    filterField.focus = false
+                    filterRow.visible = false
+                    mainItem.focus = true
+                } else {
+                    // Show filter
+                    filterRow.visible = true
+                    // Use Qt.callLater to ensure field is visible before setting focus
+                    Qt.callLater(function() {
+                        filterField.forceActiveFocus()
+                    })
+                }
+            }
+        }
         MouseArea {
             anchors.fill: parent
             acceptedButtons: Qt.BackButton | Qt.ForwardButton
