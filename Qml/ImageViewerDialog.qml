@@ -18,8 +18,6 @@ Window {
     property int currentIndex: -1
     property var pictureList: []
     property int currentPicturePos: -1
-    property string nextImagePath: ""
-    property string prevImagePath: ""
     property int currentOrdinal: 0
     property int totalPictures: 0
     property real currentFileSize: 0
@@ -31,6 +29,23 @@ Window {
     property real selectionStartY: 0
     property real selectionEndX: 0
     property real selectionEndY: 0
+    property int nativePixelWidth: 0
+    property int pendingWheelSteps: 0
+    property var preloadPaths: []
+    property string shownFullUrl: ""
+    property int appliedDecodeWidth: 0
+    property bool applyingNavigation: false
+    property bool viewerReady: false
+
+    readonly property int fitDecodeWidth: Math.max(1, Math.round(width))
+    readonly property int fullDecodeWidth: {
+        const zoomed = Math.round(fitDecodeWidth * Math.max(zoomScale, 1))
+        const dpr = Screen.devicePixelRatio > 0 ? Screen.devicePixelRatio : 1
+        const nativeDips = nativePixelWidth > 0 ? Math.max(1, Math.round(nativePixelWidth / dpr)) : 0
+        if (nativeDips > 0)
+            return Math.min(zoomed, nativeDips)
+        return zoomed
+    }
 
     function toFileUrl(path) {
         return path.length > 0 ? "file:///" + path : ""
@@ -49,22 +64,48 @@ Window {
     }
 
     function updatePreloadSources() {
-        if (pictureList.length <= 1 || currentPicturePos < 0) {
-            nextImagePath = ""
-            prevImagePath = ""
+        const len = pictureList.length
+        if (len <= 1 || currentPicturePos < 0) {
+            preloadPaths = []
             return
         }
 
-        const nextPos = (currentPicturePos + 1) % pictureList.length
-        const prevPos = (currentPicturePos - 1 + pictureList.length) % pictureList.length
-        nextImagePath = pictureList[nextPos]
-        prevImagePath = pictureList[prevPos]
+        const offsets = [-1, 1, 2, 3]
+        const paths = []
+        const seen = {}
+        seen[pictureList[currentPicturePos]] = true
+        for (let n = 0; n < offsets.length; ++n) {
+            const pos = (currentPicturePos + offsets[n] + len * 4) % len
+            const path = pictureList[pos]
+            if (seen[path])
+                continue
+            seen[path] = true
+            paths.push(path)
+        }
+        preloadPaths = paths
+    }
+
+    function applyFullImage() {
+        if (!viewerReady)
+            return
+        const url = toFileUrl(imagePath)
+        const decodeWidth = fullDecodeWidth
+        if (shownFullUrl !== url) {
+            fullImage.sourceSize = Qt.size(decodeWidth, 0)
+            fullImage.source = url
+            shownFullUrl = url
+            appliedDecodeWidth = decodeWidth
+        } else if (appliedDecodeWidth !== decodeWidth) {
+            fullImage.sourceSize = Qt.size(decodeWidth, 0)
+            appliedDecodeWidth = decodeWidth
+        }
     }
 
     function resetZoom() {
         zoomScale = 1.0
         panX = 0
         panY = 0
+        applyFullImage()
     }
 
     function normalizedSelectionRect() {
@@ -92,6 +133,28 @@ Window {
         zoomScale = zoomScale * factor
         panX = panX - (selCenterX - centerX) * factor
         panY = panY - (selCenterY - centerY) * factor
+        applyFullImage()
+    }
+
+    function showPicturePos(pos) {
+        if (pictureList.length === 0 || pos < 0 || pos >= pictureList.length)
+            return
+        const path = pictureList[pos]
+        applyingNavigation = true
+        pendingWheelSteps = 0
+        wheelNavTimer.stop()
+        zoomScale = 1.0
+        panX = 0
+        panY = 0
+        imagePath = path
+        currentPicturePos = pos
+        currentOrdinal = pos + 1
+        totalPictures = pictureList.length
+        currentFileSize = thumbsModel.imageFileSizeByPath(path)
+        nativePixelWidth = thumbsModel.imagePixelWidth(path)
+        updatePreloadSources()
+        applyingNavigation = false
+        applyFullImage()
     }
 
     function showIndex(index) {
@@ -101,62 +164,55 @@ Window {
         if (path.length === 0)
             return
         currentIndex = index
-        imagePath = path
         if (pictureList.length === 0)
             pictureList = thumbsModel.picturePaths()
-        currentPicturePos = pictureList.indexOf(path)
-        totalPictures = pictureList.length
-        currentOrdinal = currentPicturePos >= 0 ? currentPicturePos + 1 : 0
-        currentFileSize = thumbsModel.imageFileSizeByPath ? thumbsModel.imageFileSizeByPath(path) : thumbsModel.imageFileSizeAt(index)
-        updatePreloadSources()
-        resetZoom()
+        const pos = pictureList.indexOf(path)
+        if (pos < 0)
+            return
+        showPicturePos(pos)
     }
 
     function showNext() {
         if (pictureList.length === 0 || currentPicturePos < 0)
             return
-        const nextPos = (currentPicturePos + 1) % pictureList.length
-        imagePath = pictureList[nextPos]
-        currentPicturePos = nextPos
-        currentOrdinal = nextPos + 1
-        currentFileSize = thumbsModel.imageFileSizeByPath ? thumbsModel.imageFileSizeByPath(imagePath) : currentFileSize
-        updatePreloadSources()
-        resetZoom()
+        showPicturePos((currentPicturePos + 1) % pictureList.length)
     }
 
     function showPrev() {
         if (pictureList.length === 0 || currentPicturePos < 0)
             return
-        const prevPos = (currentPicturePos - 1 + pictureList.length) % pictureList.length
-        imagePath = pictureList[prevPos]
-        currentPicturePos = prevPos
-        currentOrdinal = prevPos + 1
-        currentFileSize = thumbsModel.imageFileSizeByPath ? thumbsModel.imageFileSizeByPath(imagePath) : currentFileSize
-        updatePreloadSources()
-        resetZoom()
+        showPicturePos((currentPicturePos - 1 + pictureList.length) % pictureList.length)
     }
 
     function showFirst() {
         if (pictureList.length === 0)
             return
-        imagePath = pictureList[0]
-        currentPicturePos = 0
-        currentOrdinal = 1
-        currentFileSize = thumbsModel.imageFileSizeByPath ? thumbsModel.imageFileSizeByPath(imagePath) : currentFileSize
-        updatePreloadSources()
-        resetZoom()
+        showPicturePos(0)
     }
 
     function showLast() {
         if (pictureList.length === 0)
             return
-        const lastPos = pictureList.length - 1
-        imagePath = pictureList[lastPos]
-        currentPicturePos = lastPos
-        currentOrdinal = lastPos + 1
-        currentFileSize = thumbsModel.imageFileSizeByPath ? thumbsModel.imageFileSizeByPath(imagePath) : currentFileSize
-        updatePreloadSources()
-        resetZoom()
+        showPicturePos(pictureList.length - 1)
+    }
+
+    function queueWheel(steps) {
+        if (pictureList.length === 0 || steps === 0)
+            return
+        pendingWheelSteps += steps
+        wheelNavTimer.restart()
+    }
+
+    function applyPendingWheel() {
+        const steps = pendingWheelSteps
+        pendingWheelSteps = 0
+        if (steps === 0 || pictureList.length === 0 || currentPicturePos < 0)
+            return
+        const len = pictureList.length
+        let pos = (currentPicturePos + steps) % len
+        if (pos < 0)
+            pos += len
+        showPicturePos(pos)
     }
 
     function start(index) {
@@ -170,16 +226,41 @@ Window {
     }
 
     onClosing: {
+        applyingNavigation = true
         imagePath = ""
         currentIndex = -1
         pictureList = []
         currentPicturePos = -1
-        nextImagePath = ""
-        prevImagePath = ""
+        preloadPaths = []
+        shownFullUrl = ""
+        appliedDecodeWidth = 0
+        nativePixelWidth = 0
+        pendingWheelSteps = 0
+        wheelNavTimer.stop()
         currentOrdinal = 0
         totalPictures = 0
         currentFileSize = 0
         selecting = false
+        zoomScale = 1.0
+        panX = 0
+        panY = 0
+        applyingNavigation = false
+        fullImage.source = ""
+    }
+
+    Component.onCompleted: viewerReady = true
+
+    onFullDecodeWidthChanged: {
+        if (!viewerReady || applyingNavigation)
+            return
+        applyFullImage()
+    }
+
+    Timer {
+        id: wheelNavTimer
+        interval: 50
+        repeat: false
+        onTriggered: viewer.applyPendingWheel()
     }
 
     Shortcut {
@@ -219,10 +300,11 @@ Window {
             anchors.fill: parent
             acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
             onWheel: {
-                if (wheel.angleDelta.y < 0)
-                    viewer.showNext()
-                else if (wheel.angleDelta.y > 0)
-                    viewer.showPrev()
+                const delta = wheel.angleDelta.y
+                if (delta !== 0) {
+                    const notches = Math.max(1, Math.round(Math.abs(delta) / 120))
+                    viewer.queueWheel(delta > 0 ? -notches : notches)
+                }
                 wheel.accepted = true
             }
             onPressed: {
@@ -282,7 +364,6 @@ Window {
             Image {
                 id: fullImage
                 anchors.fill: parent
-                source: viewer.toFileUrl(viewer.imagePath)
                 fillMode: Image.PreserveAspectFit
                 asynchronous: true
                 cache: true
@@ -313,23 +394,19 @@ Window {
             border.width: 1
         }
 
-        // Hidden preloaded images for faster wheel navigation.
-        Image {
-            id: preloadNext
-            visible: false
-            asynchronous: true
-            cache: true
-            autoTransform: true
-            source: viewer.toFileUrl(viewer.nextImagePath)
-        }
-
-        Image {
-            id: preloadPrev
-            visible: false
-            asynchronous: true
-            cache: true
-            autoTransform: true
-            source: viewer.toFileUrl(viewer.prevImagePath)
+        // Screen-sized neighbors: one back and three ahead.
+        Repeater {
+            id: preloadRepeater
+            model: viewer.preloadPaths
+            Image {
+                visible: false
+                asynchronous: true
+                cache: true
+                autoTransform: true
+                sourceSize.width: viewer.fitDecodeWidth
+                sourceSize.height: 0
+                source: viewer.toFileUrl(modelData)
+            }
         }
 
         Label {

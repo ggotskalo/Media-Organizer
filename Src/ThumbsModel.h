@@ -36,6 +36,7 @@ class ThumbsModel : public QAbstractListModel
      Q_INVOKABLE int pictureOrdinal(int index) const;
      Q_INVOKABLE qint64 imageFileSizeAt(int index) const;
      Q_INVOKABLE qint64 imageFileSizeByPath(const QString& path) const;
+     Q_INVOKABLE int imagePixelWidth(const QString& path) const;
      Q_INVOKABLE int nextPictureIndex(int index) const;
      Q_INVOKABLE int prevPictureIndex(int index) const;
      Q_INVOKABLE int firstPictureIndex() const;

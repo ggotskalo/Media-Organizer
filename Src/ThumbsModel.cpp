@@ -1,6 +1,7 @@
 #include "ThumbsModel.h"
 #include "DiskOperations.h"
 #include <QFileInfo>
+#include <QImageReader>
 
 ThumbsModel::ThumbsModel(QObject *parent) : QAbstractListModel(parent)
     , selectedThumbIndex_(-1)
@@ -174,6 +175,17 @@ qint64 ThumbsModel::imageFileSizeByPath(const QString& path) const
     }
     QFileInfo fi(path);
     return fi.exists() ? fi.size() : 0;
+}
+
+int ThumbsModel::imagePixelWidth(const QString& path) const
+{
+    if (path.isEmpty())
+        return 0;
+
+    QImageReader reader(path);
+    reader.setAutoTransform(true);
+    const int width = reader.size().width();
+    return width > 0 ? width : 0;
 }
 
 int ThumbsModel::nextPictureIndex(int index) const
