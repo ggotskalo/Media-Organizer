@@ -7,5 +7,6 @@
         <file>Style.qml</file>
         <file>qmldir</file>
         <file>BigToolButton.qml</file>
+        <file>ImageViewerDialog.qml</file>
     </qresource>
 </RCC>

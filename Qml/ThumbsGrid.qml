@@ -57,7 +57,7 @@ GridView {
         id: del
         width: grid.cellWidth - gap
         height: grid.cellHeight - gap
-        color: model.isBrokenShortcut ? "#ffe0e0" : model.isShortcut ? "#e8e8e8" : "transparent"
+        color: model.isBrokenShortcut ? "#ffe0e0" : model.isShortcut ? "#e8e8e8" : model.isPicture ? "#e8f5e9" : "transparent"
         border.color: "black"
         border.width: grid.border
         Image {

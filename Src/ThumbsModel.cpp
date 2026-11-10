@@ -110,6 +110,157 @@ void ThumbsModel::showShortcutInExplorer(int index)
     DiskOperations::showInExplorer(item.fileShortcutPath);
 }
 
+bool ThumbsModel::isPictureIndex(int index) const
+{
+    if (index < 0 || index >= filteredThumbs_.size())
+        return false;
+    return filteredThumbs_.at(index).type == ThumbData::Picture;
+}
+
+QString ThumbsModel::imagePathAt(int index) const
+{
+    if (!isPictureIndex(index))
+        return {};
+    return filteredThumbs_.at(index).filePath;
+}
+
+int ThumbsModel::picturesCount() const
+{
+    int count = 0;
+    for (const ThumbData &item : filteredThumbs_) {
+        if (item.type == ThumbData::Picture)
+            ++count;
+    }
+    return count;
+}
+
+int ThumbsModel::pictureOrdinal(int index) const
+{
+    if (!isPictureIndex(index))
+        return 0;
+
+    int ordinal = 0;
+    for (int i = 0; i <= index && i < filteredThumbs_.size(); ++i) {
+        if (filteredThumbs_.at(i).type == ThumbData::Picture)
+            ++ordinal;
+    }
+    return ordinal;
+}
+
+qint64 ThumbsModel::imageFileSizeAt(int index) const
+{
+    if (!isPictureIndex(index))
+        return 0;
+    return filteredThumbs_.at(index).size;
+}
+
+qint64 ThumbsModel::imageFileSizeByPath(const QString& path) const
+{
+    if (path.isEmpty())
+        return 0;
+
+    for (const ThumbData& item : filteredThumbs_) {
+        if (item.type == ThumbData::Picture &&
+            QString::compare(item.filePath, path, Qt::CaseInsensitive) == 0) {
+            return item.size;
+        }
+    }
+    QFileInfo fi(path);
+    return fi.exists() ? fi.size() : 0;
+}
+
+int ThumbsModel::nextPictureIndex(int index) const
+{
+    if (filteredThumbs_.isEmpty() || index < 0 || index >= filteredThumbs_.size())
+        return -1;
+
+    for (int i = index + 1; i < filteredThumbs_.size(); ++i) {
+        if (filteredThumbs_.at(i).type == ThumbData::Picture)
+            return i;
+    }
+    for (int i = 0; i < index; ++i) {
+        if (filteredThumbs_.at(i).type == ThumbData::Picture)
+            return i;
+    }
+    return index;
+}
+
+int ThumbsModel::prevPictureIndex(int index) const
+{
+    if (filteredThumbs_.isEmpty() || index < 0 || index >= filteredThumbs_.size())
+        return -1;
+
+    for (int i = index - 1; i >= 0; --i) {
+        if (filteredThumbs_.at(i).type == ThumbData::Picture)
+            return i;
+    }
+    for (int i = filteredThumbs_.size() - 1; i > index; --i) {
+        if (filteredThumbs_.at(i).type == ThumbData::Picture)
+            return i;
+    }
+    return index;
+}
+
+int ThumbsModel::firstPictureIndex() const
+{
+    for (int i = 0; i < filteredThumbs_.size(); ++i) {
+        if (filteredThumbs_.at(i).type == ThumbData::Picture)
+            return i;
+    }
+    return -1;
+}
+
+int ThumbsModel::lastPictureIndex() const
+{
+    for (int i = filteredThumbs_.size() - 1; i >= 0; --i) {
+        if (filteredThumbs_.at(i).type == ThumbData::Picture)
+            return i;
+    }
+    return -1;
+}
+
+int ThumbsModel::pictureIndexByPath(const QString& path) const
+{
+    if (path.isEmpty())
+        return -1;
+
+    for (int i = 0; i < filteredThumbs_.size(); ++i) {
+        const ThumbData& item = filteredThumbs_.at(i);
+        if (item.type == ThumbData::Picture &&
+            QString::compare(item.filePath, path, Qt::CaseInsensitive) == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+QStringList ThumbsModel::picturePaths() const
+{
+    QStringList paths;
+    for (const ThumbData& item : filteredThumbs_) {
+        if (item.type == ThumbData::Picture)
+            paths.append(item.filePath);
+    }
+    return paths;
+}
+
+bool ThumbsModel::copyImageToBest(int index)
+{
+    if (!isPictureIndex(index))
+        return false;
+    const QString imagePath = imagePathAt(index);
+    if (imagePath.isEmpty())
+        return false;
+    return DiskOperations::copyToBest(imagePath);
+}
+
+bool ThumbsModel::copyImageToBestPath(const QString& imagePath)
+{
+    if (imagePath.isEmpty())
+        return false;
+    return DiskOperations::copyToBest(imagePath);
+}
+
 void ThumbsModel::copyItem(int index)
 {
     if (index < 0 || index >= filteredThumbs_.size())
@@ -151,7 +302,7 @@ QHash<int, QByteArray> ThumbsModel::roleNames() const
 {
     return { {SourceRole, "source"}, {NameRole, "name"}, {SizeRole, "size"},
              {FolderRole, "isFolder"}, {ShortcutRole, "isShortcut"},
-             {BrokenShortcutRole, "isBrokenShortcut"},
+             {PictureRole, "isPicture"}, {BrokenShortcutRole, "isBrokenShortcut"},
            };
 }
 
@@ -177,6 +328,8 @@ QVariant ThumbsModel::data(const QModelIndex &index, int role) const
             return td.type == ThumbData::Folder;
         case ShortcutRole:
             return td.filePath != td.fileShortcutPath;
+        case PictureRole:
+            return td.type == ThumbData::Picture;
         case BrokenShortcutRole:
             return td.isBrokenShortcut;
     }

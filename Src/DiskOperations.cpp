@@ -109,6 +109,28 @@ bool DiskOperations::clipboardHasFiles()
     return mimeData && mimeData->hasUrls();
 }
 
+bool DiskOperations::copyToBest(const QString& srcPath)
+{
+    QFileInfo srcInfo(srcPath);
+    if (!srcInfo.exists() || !srcInfo.isFile())
+        return false;
+
+    QDir currentDir(srcInfo.absolutePath());
+    if (!currentDir.cdUp())
+        return false;
+
+    const QString bestDirPath = currentDir.absoluteFilePath("$best");
+    QDir bestDir(bestDirPath);
+    if (!bestDir.exists() && !QDir().mkpath(bestDirPath))
+        return false;
+
+    const QString destPath = generateUniquePath(bestDirPath, srcInfo.fileName());
+    if (destPath.isEmpty())
+        return false;
+
+    return QFile::copy(srcInfo.absoluteFilePath(), destPath);
+}
+
 bool DiskOperations::copyDirectoryRecursively(const QString& srcPath, const QString& destPath)
 {
     QDir srcDir(srcPath);

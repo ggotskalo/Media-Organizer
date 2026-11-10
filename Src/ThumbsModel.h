@@ -16,6 +16,7 @@ class ThumbsModel : public QAbstractListModel
          SizeRole,
          FolderRole,
          ShortcutRole,
+         PictureRole,
          BrokenShortcutRole,
      };     
 
@@ -28,6 +29,20 @@ class ThumbsModel : public QAbstractListModel
      Q_INVOKABLE void moveToParent(int index);
      Q_INVOKABLE void showInExplorer(int index);
      Q_INVOKABLE void showShortcutInExplorer(int index);
+     Q_INVOKABLE bool isPictureIndex(int index) const;
+     Q_INVOKABLE QString imagePathAt(int index) const;
+     Q_INVOKABLE int picturesCount() const;
+     Q_INVOKABLE int pictureOrdinal(int index) const;
+     Q_INVOKABLE qint64 imageFileSizeAt(int index) const;
+     Q_INVOKABLE qint64 imageFileSizeByPath(const QString& path) const;
+     Q_INVOKABLE int nextPictureIndex(int index) const;
+     Q_INVOKABLE int prevPictureIndex(int index) const;
+     Q_INVOKABLE int firstPictureIndex() const;
+     Q_INVOKABLE int lastPictureIndex() const;
+     Q_INVOKABLE int pictureIndexByPath(const QString& path) const;
+     Q_INVOKABLE QStringList picturePaths() const;
+     Q_INVOKABLE bool copyImageToBest(int index);
+     Q_INVOKABLE bool copyImageToBestPath(const QString& imagePath);
      Q_INVOKABLE void setFilterText(const QString& filterText);
 
      Q_INVOKABLE void copyItem(int index);

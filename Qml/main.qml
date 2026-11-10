@@ -191,11 +191,18 @@ Window {
                     }
                     onItemClicked: {
                         grid.currentIndex = index
-                        thumbsModel.selectItem(index)
+                        if (thumbsModel.isPictureIndex(index)) {
+                            imageViewerDialog.start(index)
+                        } else {
+                            thumbsModel.selectItem(index)
+                        }
                     }
                     onItemMiddleClicked: {
                         grid.currentIndex = index
                         thumbsModel.setItemAsThumb(index)
+                    }
+                    onRemoveSelected: {
+                        thumbsModel.removeItem(index)
                     }
                     onMoveToParent: {
                         thumbsModel.moveToParent(index)
@@ -313,6 +320,10 @@ Window {
     Platform.FolderDialog {
         id: addFolderDialog
         onAccepted: foldersModel.addFolder(folder)
+    }
+
+    ImageViewerDialog {
+        id: imageViewerDialog
     }
 
     Settings {
