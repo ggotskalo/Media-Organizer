@@ -95,6 +95,7 @@ protected:
      void updateFilter();
      bool matchesFilter(const ThumbData& thumb) const;
      void updateBrokenShortcutsCount();
+     void removeFilteredIndex(int index);
 };
 
 #endif // THUMBSMODEL_H

@@ -55,16 +55,13 @@ void ThumbsModel::removeItem(int index) {
     const QString pathToRemove = isShortcut ? item.fileShortcutPath : item.filePath;
 
     if (DiskOperations::remove(pathToRemove)) {
-        // Find and remove from original list
         for (int i = 0; i < thumbs_.size(); ++i) {
             if (thumbs_[i].fileShortcutPath == item.fileShortcutPath) {
                 thumbs_.removeAt(i);
                 break;
             }
         }
-        updateFilter();
-        beginResetModel();
-        endResetModel();
+        removeFilteredIndex(index);
         updateBrokenShortcutsCount();
     }
 }
@@ -76,16 +73,13 @@ void ThumbsModel::moveToParent(int index)
     }
     QString path = filteredThumbs_.at(index).filePath;
     if (DiskOperations::moveToParentFolder(path)) {
-        // Find and remove from original list
         for (int i = 0; i < thumbs_.size(); ++i) {
             if (thumbs_[i].filePath == path) {
                 thumbs_.removeAt(i);
                 break;
             }
         }
-        updateFilter();
-        beginResetModel();
-        endResetModel();
+        removeFilteredIndex(index);
     }
 }
 
@@ -425,6 +419,26 @@ bool ThumbsModel::matchesFilter(const ThumbData& thumb) const
     QString lowerFilter = filterText_.toLower();
     QString lowerName = thumb.displayName.toLower();
     return lowerName.contains(lowerFilter);
+}
+
+void ThumbsModel::removeFilteredIndex(int index)
+{
+    if (index < 0 || index >= filteredThumbs_.size())
+        return;
+
+    const QString removedPath = filteredThumbs_.at(index).filePath;
+    beginRemoveRows(QModelIndex(), index, index);
+    filteredThumbs_.removeAt(index);
+    pathToPosition_.remove(removedPath);
+    for (auto it = pathToPosition_.begin(); it != pathToPosition_.end(); ++it) {
+        if (*it > index)
+            *it -= 1;
+    }
+    if (selectedThumbIndex_ == index)
+        selectedThumbIndex_ = -1;
+    else if (selectedThumbIndex_ > index)
+        --selectedThumbIndex_;
+    endRemoveRows();
 }
 
 void ThumbsModel::updateBrokenShortcutsCount()
