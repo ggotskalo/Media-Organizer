@@ -1,6 +1,6 @@
 #ifndef DISKOPERATIONS_H
 #define DISKOPERATIONS_H
-#include "QString"
+#include <QString>
 
 class DiskOperations
 {
