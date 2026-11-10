@@ -1,0 +1,7 @@
+[generators]
+cmake_find_package
+
+[requires]
+ffmpeg/4.2.1
+
+[options]

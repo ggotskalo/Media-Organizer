@@ -14,6 +14,9 @@
 #include "ThumbsViewState.h"
 #include "Browsing/BrowsingNavigation.h"
 #include "ThumbGenerators/VideoThumbnailGeneratorWin32.h"
+#ifdef HAVE_FFMPEG
+#include "ThumbGenerators/VideoThumbnailGeneratorFFmpeg.h"
+#endif
 #include "FileIndexer.h"
 #include "StatusManager.h"
 #include "ShortcutFixer.h"
@@ -35,7 +38,12 @@ int main(int argc, char *argv[])
 
     //don't delete, the QQmlEngine takes ownership of provider
     ThumbsProvider* thumbsProvider = new ThumbsProvider;
+    
+    // Choose video thumbnail generator:
+    // VideoThumbnailGeneratorWin32Factory - uses Windows Media Foundation (Windows only)
+    // VideoThumbnailGeneratorFFmpegFactory - uses FFmpeg (cross-platform, more codec support)
     VideoThumbnailGeneratorWin32Factory factory;
+    // VideoThumbnailGeneratorFFmpegFactory factory;  // Uncomment to use FFmpeg instead
 
     DirProcessor dirProcessor(thumbsProvider, factory);
     dirProcessor.moveToThread(&dirProcessorThread);

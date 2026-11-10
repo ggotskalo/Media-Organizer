@@ -2,6 +2,23 @@ cmake_minimum_required(VERSION 3.14)
 
 project(MediaOrganizer VERSION 0.1 LANGUAGES CXX)
 
+# Include Conan generated files if they exist
+# Run: conan install . --build=missing to generate these files
+# For cmake_find_package generator, Conan creates Find*.cmake files
+if(EXISTS "${CMAKE_BINARY_DIR}/conanbuildinfo.cmake")
+    include("${CMAKE_BINARY_DIR}/conanbuildinfo.cmake")
+    conan_basic_setup()
+elseif(EXISTS "${CMAKE_BINARY_DIR}/conan_paths.cmake")
+    include("${CMAKE_BINARY_DIR}/conan_paths.cmake")
+endif()
+
+# Add Conan generated Find*.cmake files to module path
+# Conan with cmake_find_package generator creates files in build directory
+if(EXISTS "${CMAKE_BINARY_DIR}")
+    list(APPEND CMAKE_MODULE_PATH "${CMAKE_BINARY_DIR}")
+    list(APPEND CMAKE_PREFIX_PATH "${CMAKE_BINARY_DIR}")
+endif()
+
 if(${MSVC_TOOLSET_VERSION} LESS 140)
     message(FATAL_ERROR "MSVC 2015 or greater toolset required")
 endif()
@@ -18,6 +35,16 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(QT NAMES Qt6 Qt5 COMPONENTS Core Quick REQUIRED Concurrent)
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core Quick REQUIRED Concurrent)
 
+# Find FFmpeg using Conan (optional - only needed if using FFmpeg generator)
+# Conan generates Find*.cmake files in build directory
+# Make sure to run: conan install . --build=missing
+find_package(ffmpeg QUIET)
+if(ffmpeg_FOUND)
+    message(STATUS "FFmpeg found - FFmpeg generator available")
+else()
+    message(STATUS "FFmpeg not found - only Win32 generator will be available")
+endif()
+
 set(PROJECT_SOURCES
         Src/main.cpp
         Qml/qml.qrc
@@ -31,13 +58,14 @@ set(PROJECT_SOURCES
         Src/DirProcessor.h Src/DirProcessor.cpp
         Src/ThumbsDiskCacher.h Src/ThumbsDiskCacher.cpp
         Src/DiskOperations.h Src/DiskOperations.cpp
-        Src/ShortcutFixer.h Src/ShortcutFixer.cpp
-        Src/DuplicateFinder.h Src/DuplicateFinder.cpp
         Src/FileIndexer.h Src/FileIndexer.cpp
         Src/StatusManager.h Src/StatusManager.cpp
+        Src/ShortcutFixer.h Src/ShortcutFixer.cpp
+        Src/DuplicateFinder.h Src/DuplicateFinder.cpp
 
         Src/ThumbGenerators/VideoThumbnailGeneratorInterface.h
         Src/ThumbGenerators/VideoThumbnailGeneratorWin32.h Src/ThumbGenerators/VideoThumbnailGeneratorWin32.cpp
+        Src/ThumbGenerators/VideoThumbnailGeneratorFFmpeg.h Src/ThumbGenerators/VideoThumbnailGeneratorFFmpeg.cpp
         Src/ThumbGenerators/VideoThumbnailGeneratorFactory.h
 
         Src/ThumbData.h
@@ -75,7 +103,16 @@ if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(MediaOrganizer)
 endif()
 
-target_link_libraries(MediaOrganizer PRIVATE Qt${QT_VERSION_MAJOR}::Concurrent Kernel32 mfplat mfreadwrite mfuuid propsys shell32 d2d1 winmm)
+target_link_libraries(MediaOrganizer PRIVATE 
+    Qt${QT_VERSION_MAJOR}::Concurrent 
+    Kernel32 mfplat mfreadwrite mfuuid propsys shell32 d2d1 winmm
+)
+
+# Link FFmpeg only if found
+if(ffmpeg_FOUND)
+    target_link_libraries(MediaOrganizer PRIVATE ffmpeg::ffmpeg)
+    target_compile_definitions(MediaOrganizer PRIVATE HAVE_FFMPEG)
+endif()
 
 option(BUILD_TESTS "Build tests" ON)
 if(BUILD_TESTS)
