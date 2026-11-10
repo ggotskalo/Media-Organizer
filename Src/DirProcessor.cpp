@@ -35,13 +35,29 @@ void DirProcessor::startGeneratingThumbnails(QStringList excludePathes)
         return;
     }
 
+    // Cancel previous operation and wait for its completion
     cancel();
+    thumbsCreating_->waitForFinished();
+    
+    // Clear generators list after all operations complete
+    {
+        QMutexLocker lock(&thumbnailGeneratorsMutex_);
+        thumbnailGenerators_.clear();
+    }
+    
     canceled_ = false;
+    
     QSet<QString> excludePathesSet(excludePathes.begin(), excludePathes.end());
     auto newEnd = std::remove_if(thumbsForGeneration_.begin(), thumbsForGeneration_.end(), [&](const ThumbData& td){
        return td.noThumb || excludePathesSet.contains(td.filePath);
     });
     thumbsForGeneration_.erase(newEnd, thumbsForGeneration_.end());
+    
+    if (thumbsForGeneration_.isEmpty()) {
+        emit allFilesProcessed(thumbsForGeneration_);
+        return;
+    }
+    
     thumbsCreating_->setFuture(QtConcurrent::mapped(thumbsForGeneration_, std::bind(&DirProcessor::makeThumb,
                                                                   this,
                                                                   std::placeholders::_1)));
@@ -96,6 +112,7 @@ bool DirProcessor::getUnitedDirFiles(QStringList dirPathes, QList<ThumbData> &th
 {
     if (allHaveThumbs) *allHaveThumbs = true;
     cancel();
+    canceled_ = false;
 
     QStringList filter;
     foreach (const QString& ext, videoExt_ + pictExt_ + linkExt_) {
@@ -230,6 +247,10 @@ ThumbData::Type DirProcessor::getFileType(const QFileInfo& fileInfo)
 
 QImage DirProcessor::makeThumb(ThumbData fileData)
 {
+    if (canceled_) {
+        return QImage();
+    }
+    
     if (fileData.type == ThumbData::Picture) {
 
         QImageReader image(fileData.thumbSource);
@@ -243,19 +264,38 @@ QImage DirProcessor::makeThumb(ThumbData fileData)
         return image.read();
 
     } else if (fileData.type == ThumbData::Video) {
+        if (canceled_) {
+            return QImage();
+        }
 
         auto thumbnailGenerator = std::shared_ptr<VideoThumbnailGeneratorInterface>(videoThumbnailGeneratorFactory_.createGenerator());
         {
             QMutexLocker lock(&thumbnailGeneratorsMutex_);
+            if (canceled_) {
+                thumbnailGenerator->abort();
+                return QImage();
+            }
             thumbnailGenerators_.insert(fileData.thumbSource, thumbnailGenerator);
         }
+        
         QImage images[1];
-        thumbnailGenerator->getThumbs(fileData.thumbSource, 1, images);
+        bool success = thumbnailGenerator->getThumbs(fileData.thumbSource, 1, images);
+        
         {
             QMutexLocker lock(&thumbnailGeneratorsMutex_);
             thumbnailGenerators_.remove(fileData.thumbSource);
         }
-        return images[0];
+        
+        if (canceled_) {
+            return QImage();
+        }
+        
+        // Return image only if generation was successful and image is not null
+        if (success && !images[0].isNull()) {
+            return images[0];
+        }
+        
+        return QImage();
 
     }
 
