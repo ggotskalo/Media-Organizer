@@ -254,6 +254,46 @@ bool DirProcessor::getUnitedDirFiles(QStringList dirPathes, QList<ThumbData> &th
     return true;
 }
 
+void DirProcessor::processFoundFiles(QStringList paths)
+{
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, [this, paths]{processFoundFiles(paths);}, Qt::QueuedConnection);
+        return;
+    }
+    canceled_ = false;
+
+    QList<ThumbData> items;
+    QStringList needThumb;
+    for (const QString& p : paths) {
+        const QFileInfo fileInfoReal(p);
+        const bool isShortcut = fileInfoReal.isShortcut();
+        if (!isShortcut && !fileInfoReal.exists())
+            continue;
+        const QFileInfo fileInfo = isShortcut ? QFileInfo(fileInfoReal.symLinkTarget()) : fileInfoReal;
+        const bool brokenShortcut = isShortcut && !fileInfo.exists();
+
+        const ThumbData::Type type = getFileType(fileInfo);
+        const QString name = fileInfo.fileName();
+        const QString path = fileInfo.absoluteFilePath();
+        const QString shortcutPath = fileInfoReal.absoluteFilePath();
+
+        if (brokenShortcut) {
+            items.append({name, path, shortcutPath, type, "", 0, false, true});
+        } else if (thumbsProvider_->haveThumb(path)) {
+            items.append({name, path, shortcutPath, type, path, fileInfo.size()});
+        } else {
+            items.append({name, path, shortcutPath, type, "", fileInfo.size()});
+            if (type == ThumbData::Picture || type == ThumbData::Video)
+                needThumb.append(path);
+        }
+    }
+    if (items.isEmpty())
+        return;
+    emit foundFilesReady(items);
+    for (const QString& path : qAsConst(needThumb))
+        generateThumbnail(path);
+}
+
 QFileInfo DirProcessor::getMostSuitable(const QFileInfoList& folderFiles)
 {
     static const QSet<QString> highPriorityNames = {"cover"};

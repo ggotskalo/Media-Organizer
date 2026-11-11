@@ -10,6 +10,7 @@
         <file>BrokenShortcutsDialog.qml</file>
         <file>CopyProgressDialog.qml</file>
         <file>MoveToDialog.qml</file>
+        <file>SearchDialog.qml</file>
         <file>DuplicatesDialog.qml</file>
         <file>ImageViewerDialog.qml</file>
     </qresource>

@@ -20,6 +20,7 @@
 #include "StatusManager.h"
 #include "ShortcutFixer.h"
 #include "DuplicateFinder.h"
+#include "FileSearcher.h"
 
 int main(int argc, char *argv[])
 {
@@ -54,6 +55,7 @@ int main(int argc, char *argv[])
     StatusManager statusManager;
     ShortcutFixer shortcutFixer;
     DuplicateFinder duplicateFinder;
+    FileSearcher fileSearcher(&statusManager);
 
     ComponentsMediator componentsMediator(*thumbsProvider, dirProcessor, thumbsDiskCacher,
                            browsingNavigation, thumbsModel, foldersModel, statusManager);
@@ -65,6 +67,16 @@ int main(int argc, char *argv[])
         fileIndexer.indexFolders(foldersModel.getAllFolders());
     });
     
+    // search results are shown in the usual thumbnails grid
+    QObject::connect(&fileSearcher, &FileSearcher::searchStarted, &thumbsModel, [&]() {
+        dirProcessor.cancel();
+        thumbsModel.beginSearch();
+    });
+    QObject::connect(&fileSearcher, &FileSearcher::hitsFound, &dirProcessor, &DirProcessor::processFoundFiles);
+    QObject::connect(&dirProcessor, &DirProcessor::foundFilesReady, &thumbsModel, &ThumbsModel::appendItems,
+                     Qt::QueuedConnection);
+    QObject::connect(&thumbsModel, &ThumbsModel::listReplaced, &fileSearcher, &FileSearcher::cancel);
+
     QObject::connect(&shortcutFixer, &ShortcutFixer::refreshRequested,
                      &thumbsModel, &ThumbsModel::refresh);
 
@@ -94,6 +106,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("statusManager", &statusManager);
     engine.rootContext()->setContextProperty("shortcutFixer", &shortcutFixer);
     engine.rootContext()->setContextProperty("duplicateFinder", &duplicateFinder);
+    engine.rootContext()->setContextProperty("fileSearcher", &fileSearcher);
     engine.addImageProvider("thumb", thumbsProvider);
 
     ViewerImageCache *viewerCache = new ViewerImageCache(&app);

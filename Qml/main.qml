@@ -60,6 +60,14 @@ Window {
                 Button {
                     Layout.fillWidth: true
                     Layout.minimumHeight: Style.toolboxHeight
+                    text: qsTr("Search")
+                    palette.button: "#e0e0e0"
+                    onClicked: searchDialog.open()
+                }
+
+                Button {
+                    Layout.fillWidth: true
+                    Layout.minimumHeight: Style.toolboxHeight
                     text: qsTr("Find Duplicates")
                     palette.button: "#e0e0e0"
                     onClicked: duplicatesDialog.start(foldersModel.getAllFolderPaths())
@@ -428,6 +436,13 @@ Window {
     Platform.FolderDialog {
         id: addFolderDialog
         onAccepted: foldersModel.addFolder(folder)
+    }
+
+    SearchDialog {
+        id: searchDialog
+        onAccepted: {
+            fileSearcher.start(text, rescan, foldersModel.getAllFolderPaths())
+        }
     }
 
     MoveToDialog {

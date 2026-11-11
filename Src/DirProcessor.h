@@ -32,6 +32,10 @@ public:
     //all created thumb sizes multiply to scale
     void setScale(double scale) {scale_ = scale;}
 
+    //builds grid items for found files (any folders), emits "foundFilesReady",
+    //then generates thumbnails for the ones that have none
+    void processFoundFiles(QStringList paths);
+
     //cancel generating thumbnails
     void cancel();    
     void waitFinished();
@@ -41,6 +45,7 @@ signals:
     void allFilesProcessed(QList<ThumbData> files);
     void getDirFilesAsyncResponce(QStringList dirPathes, QList<ThumbData> sortedDirFiles, bool success, bool allHaveThumbs);
     void statusChanged(QString status);
+    void foundFilesReady(QList<ThumbData> items);
 
 protected:
     QImage makeThumb(ThumbData thumbData);

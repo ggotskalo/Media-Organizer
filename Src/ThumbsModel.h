@@ -32,6 +32,9 @@ class ThumbsModel : public QAbstractListModel
      Q_INVOKABLE bool isFolderIndex(int index) const;
      Q_INVOKABLE void goToOriginal(int index);
      Q_INVOKABLE void showInExplorer(int index);
+     Q_INVOKABLE void goToPath(const QString& path);
+     void beginSearch();
+     void appendItems(QList<ThumbData> items);
      Q_INVOKABLE void showShortcutInExplorer(int index);
      Q_INVOKABLE bool isPictureIndex(int index) const;
      Q_INVOKABLE QString imagePathAt(int index) const;
@@ -91,6 +94,7 @@ signals:
     void filterTextChanged();
     void canPasteChanged();
     void refreshRequested(QStringList dirPathes);
+    void listReplaced();
     void brokenShortcutsCountChanged();
     void openFolderRequested(QString folderPath);
     void revealItem(int index);

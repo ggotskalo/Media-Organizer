@@ -26,6 +26,7 @@ ThumbsModel::~ThumbsModel()
 
 void ThumbsModel::listReceived(QStringList dirPath, QList<ThumbData> thumbs, bool success)
 {
+    emit listReplaced();
     beginResetModel();
     currentDirPathes_ = dirPath;
     int pos = 0;
@@ -155,6 +156,57 @@ void ThumbsModel::goToOriginal(int index)
 
     pendingRevealPath_ = item.filePath;
     emit openFolderRequested(QFileInfo(item.filePath).absolutePath());
+}
+
+void ThumbsModel::beginSearch()
+{
+    beginResetModel();
+    currentDirPathes_.clear();
+    thumbs_.clear();
+    filteredThumbs_.clear();
+    pathToPosition_.clear();
+    selectedThumbIndex_ = -1;
+    endResetModel();
+    updateBrokenShortcutsCount();
+    emit canPasteChanged();
+}
+
+void ThumbsModel::appendItems(QList<ThumbData> items)
+{
+    QList<ThumbData> visible;
+    for (const ThumbData& td : qAsConst(items)) {
+        thumbs_.append(td);
+        if (matchesFilter(td))
+            visible.append(td);
+    }
+    if (!visible.isEmpty()) {
+        const int first = filteredThumbs_.size();
+        beginInsertRows(QModelIndex(), first, first + visible.size() - 1);
+        int pos = first;
+        for (const ThumbData& td : qAsConst(visible)) {
+            filteredThumbs_.append(td);
+            pathToPosition_.insert(td.filePath, pos++);
+        }
+        endInsertRows();
+    }
+    updateBrokenShortcutsCount();
+}
+
+void ThumbsModel::goToPath(const QString& path)
+{
+    const QFileInfo info(path);
+    if (info.isDir()) {
+        emit openFolderRequested(info.absoluteFilePath());
+        return;
+    }
+    const int here = realItemIndex(path);
+    if (here >= 0) {
+        selectedThumbIndex_ = here;
+        emit revealItem(here);
+        return;
+    }
+    pendingRevealPath_ = path;
+    emit openFolderRequested(info.absolutePath());
 }
 
 void ThumbsModel::showInExplorer(int index)

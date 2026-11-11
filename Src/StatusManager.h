@@ -13,12 +13,15 @@ class StatusManager : public QObject
 public:
     explicit StatusManager(QObject *parent = nullptr);
 
-    QString statusText() const { return statusText_; }
-    bool isBusy() const { return isBusy_; }
+    QString statusText() const { return priorityText_.isEmpty() ? statusText_ : priorityText_; }
+    bool isBusy() const { return isBusy_ || !priorityText_.isEmpty(); }
 
 public slots:
     void setStatus(const QString& text);
     void clearStatus();
+    // shown above the normal status, not overwritten by it (e.g. file search progress)
+    void setPriorityStatus(const QString& text);
+    void clearPriorityStatus();
 
 signals:
     void statusTextChanged();
@@ -26,6 +29,7 @@ signals:
 
 private:
     QString statusText_;
+    QString priorityText_;
     bool isBusy_;
 };
 

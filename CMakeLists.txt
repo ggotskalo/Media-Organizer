@@ -56,6 +56,7 @@ set(PROJECT_SOURCES
         Src/DiskOperations.h Src/DiskOperations.cpp
         Src/CopyManager.h Src/CopyManager.cpp
         Src/MoveHelper.h Src/MoveHelper.cpp
+        Src/FileSearcher.h Src/FileSearcher.cpp
         Src/FileIndexer.h Src/FileIndexer.cpp
         Src/StatusManager.h Src/StatusManager.cpp
         Src/ShortcutFixer.h Src/ShortcutFixer.cpp
