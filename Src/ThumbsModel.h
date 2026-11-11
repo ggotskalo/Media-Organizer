@@ -59,6 +59,7 @@ class ThumbsModel : public QAbstractListModel
      Q_INVOKABLE void pasteLinkItems();
      Q_INVOKABLE bool canPaste() const;
      Q_INVOKABLE void removeBrokenShortcuts();
+     Q_INVOKABLE bool playAll();
     Q_INVOKABLE void refresh();
     Q_INVOKABLE QStringList brokenShortcutPaths() const;
     Q_INVOKABLE QStringList brokenTargetNames() const;
@@ -79,6 +80,9 @@ class ThumbsModel : public QAbstractListModel
      Q_PROPERTY(bool pasteEnabled READ canPaste NOTIFY canPasteChanged)
      QString getFilterText() const { return filterText_; }
 
+     Q_PROPERTY(int videosCount READ videosCount NOTIFY videosCountChanged)
+     int videosCount() const;
+
      Q_PROPERTY(int brokenShortcutsCount READ brokenShortcutsCount NOTIFY brokenShortcutsCountChanged)
      int brokenShortcutsCount() const { return brokenShortcutsCount_; }
 
@@ -95,6 +99,7 @@ signals:
     void canPasteChanged();
     void refreshRequested(QStringList dirPathes);
     void listReplaced();
+    void videosCountChanged();
     void brokenShortcutsCountChanged();
     void openFolderRequested(QString folderPath);
     void revealItem(int index);

@@ -6,6 +6,10 @@
 #include <QFileInfo>
 #include <QGuiApplication>
 #include <QImageReader>
+#include <QDesktopServices>
+#include <QStandardPaths>
+#include <QTextStream>
+#include <QUrl>
 
 ThumbsModel::ThumbsModel(QObject *parent) : QAbstractListModel(parent)
     , selectedThumbIndex_(-1)
@@ -13,6 +17,9 @@ ThumbsModel::ThumbsModel(QObject *parent) : QAbstractListModel(parent)
 {
     if (QClipboard *clipboard = QGuiApplication::clipboard())
         connect(clipboard, &QClipboard::dataChanged, this, &ThumbsModel::canPasteChanged);
+    connect(this, &QAbstractItemModel::modelReset, this, &ThumbsModel::videosCountChanged);
+    connect(this, &QAbstractItemModel::rowsInserted, this, &ThumbsModel::videosCountChanged);
+    connect(this, &QAbstractItemModel::rowsRemoved, this, &ThumbsModel::videosCountChanged);
     connect(&copyManager_, &CopyManager::finished, this, [this](const QString&, int pasted) {
         if (pasted > 0 && currentDirPathes_.size() == 1)
             emit refreshRequested(currentDirPathes_);
@@ -567,6 +574,40 @@ void ThumbsModel::removeFilteredIndex(int index)
     else if (selectedThumbIndex_ > index)
         --selectedThumbIndex_;
     endRemoveRows();
+}
+
+int ThumbsModel::videosCount() const
+{
+    int count = 0;
+    for (const ThumbData& td : filteredThumbs_) {
+        if (td.type == ThumbData::Video && !td.isBrokenShortcut)
+            ++count;
+    }
+    return count;
+}
+
+bool ThumbsModel::playAll()
+{
+    QStringList paths;
+    for (const ThumbData& td : qAsConst(filteredThumbs_)) {
+        if (td.type == ThumbData::Video && !td.isBrokenShortcut)
+            paths << QDir::toNativeSeparators(td.filePath);
+    }
+    if (paths.isEmpty())
+        return false;
+
+    const QString playlist = QStandardPaths::writableLocation(QStandardPaths::TempLocation)
+                             + "/MediaOrganizer_playlist.m3u8";
+    QFile file(playlist);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate))
+        return false;
+    file.write("#EXTM3U\n");
+    for (const QString& p : qAsConst(paths))
+        file.write(p.toUtf8() + "\n");
+    file.close();
+
+    // opened by the program associated with .m3u8 in the system
+    return QDesktopServices::openUrl(QUrl::fromLocalFile(playlist));
 }
 
 void ThumbsModel::updateBrokenShortcutsCount()

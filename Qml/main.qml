@@ -200,7 +200,7 @@ Window {
                             spacing: 0
 
                             BigToolButton {
-                                width: parent.width / 3
+                                width: parent.width / 4
                                 height: parent.height
                                 padding: 0
                                 topInset: 0
@@ -212,7 +212,7 @@ Window {
                             }
 
                             BigToolButton {
-                                width: parent.width / 3
+                                width: parent.width / 4
                                 height: parent.height
                                 padding: 0
                                 topInset: 0
@@ -224,7 +224,7 @@ Window {
                             }
 
                             BigToolButton {
-                                width: parent.width - Math.floor(parent.width / 3) * 2
+                                width: parent.width / 4
                                 height: parent.height
                                 padding: 0
                                 topInset: 0
@@ -241,6 +241,18 @@ Window {
                                         foldersModel.getAllFolderPaths()
                                     )
                                 }
+                            }
+
+                            BigToolButton {
+                                width: parent.width - Math.floor(parent.width / 4) * 3
+                                height: parent.height
+                                padding: 0
+                                topInset: 0
+                                bottomInset: 0
+                                font.pixelSize: 11
+                                enabled: thumbsModel.videosCount > 0
+                                text: qsTr("Play all")
+                                onClicked: thumbsModel.playAll()
                             }
                         }
                     }
