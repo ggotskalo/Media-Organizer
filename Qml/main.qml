@@ -126,50 +126,115 @@ Window {
                 RowLayout {
                     id: toolboxRow
                     width: parent.width
-                    height: Style.toolboxHeight
+                    height: Math.round(Style.toolboxHeight * 6 / 5)
                     spacing: 0
 
-                    BigToolButton {
-                        enabled: browsing.upEnabled
-                        text: qsTr("[..]")
-                        onClicked: browsing.goParent()
-                    }
+                        Column {
+                            id: buttonStrip
+                            Layout.minimumWidth: Style.toolboxButtonWidth * 5
+                            Layout.maximumWidth: Style.toolboxButtonWidth * 5
+                            Layout.preferredWidth: Style.toolboxButtonWidth * 5
+                            Layout.fillHeight: true
+                            width: Style.toolboxButtonWidth * 5
+                            spacing: 0
 
-                    BigToolButton {
-                        enabled: browsing.backEnabled
-                        text: qsTr("<-")
-                        onClicked: browsing.goBack()
-                    }
+                        Row {
+                            id: navButtons
+                            width: parent.width
+                            height: Math.round(parent.parent.height * 2 / 3)
+                            spacing: 0
 
-                    BigToolButton {
-                        enabled: browsing.forwardEnabled
-                        text: qsTr("->")
-                        onClicked: browsing.goForward()
-                    }
+                            BigToolButton {
+                                width: parent.width / 5
+                                height: parent.height
+                                enabled: browsing.upEnabled
+                                text: qsTr("[..]")
+                                onClicked: browsing.goParent()
+                            }
 
-                    BigToolButton {
-                        enabled: browsing.prevFolderEnabled
-                        text: qsTr("[]<-")
-                        onClicked: browsing.goPrevFolder()
-                    }
+                            BigToolButton {
+                                width: parent.width / 5
+                                height: parent.height
+                                enabled: browsing.backEnabled
+                                text: qsTr("<-")
+                                onClicked: browsing.goBack()
+                            }
 
-                    BigToolButton {
-                        enabled: browsing.nextFolderEnabled
-                        text: qsTr("[]->")
-                        onClicked: browsing.goNextFolder()
-                    }
+                            BigToolButton {
+                                width: parent.width / 5
+                                height: parent.height
+                                enabled: browsing.forwardEnabled
+                                text: qsTr("->")
+                                onClicked: browsing.goForward()
+                            }
 
-                    BigToolButton {
-                        visible: thumbsModel.brokenShortcutsCount > 0
-                        text: qsTr("Dead links: %1").arg(thumbsModel.brokenShortcutsCount)
-                        onClicked: {
-                            brokenShortcutsDialog.start(
-                                thumbsModel.brokenShortcutPaths(),
-                                thumbsModel.brokenTargetNames(),
-                                foldersModel.getAllFolderPaths()
-                            )
+                            BigToolButton {
+                                width: parent.width / 5
+                                height: parent.height
+                                enabled: browsing.prevFolderEnabled
+                                text: qsTr("[]<-")
+                                onClicked: browsing.goPrevFolder()
+                            }
+
+                            BigToolButton {
+                                width: parent.width / 5
+                                height: parent.height
+                                enabled: browsing.nextFolderEnabled
+                                text: qsTr("[]->")
+                                onClicked: browsing.goNextFolder()
+                            }
                         }
-                        palette.button: "#ffe0e0"
+
+                        Row {
+                            id: folderActions
+                            width: parent.width
+                            height: parent.parent.height - navButtons.height
+                            spacing: 0
+
+                            BigToolButton {
+                                width: parent.width / 3
+                                height: parent.height
+                                padding: 0
+                                topInset: 0
+                                bottomInset: 0
+                                font.pixelSize: 11
+                                enabled: thumbsModel.pasteEnabled
+                                text: qsTr("Paste")
+                                onClicked: thumbsModel.pasteItems()
+                            }
+
+                            BigToolButton {
+                                width: parent.width / 3
+                                height: parent.height
+                                padding: 0
+                                topInset: 0
+                                bottomInset: 0
+                                font.pixelSize: 11
+                                enabled: thumbsModel.pasteEnabled
+                                text: qsTr("Paste link")
+                                onClicked: thumbsModel.pasteLinkItems()
+                            }
+
+                            BigToolButton {
+                                width: parent.width - Math.floor(parent.width / 3) * 2
+                                height: parent.height
+                                padding: 0
+                                topInset: 0
+                                bottomInset: 0
+                                font.pixelSize: 11
+                                enabled: thumbsModel.brokenShortcutsCount > 0
+                                palette.button: thumbsModel.brokenShortcutsCount > 0 ? "#ffe0e0" : "#f0f0f0"
+                                palette.buttonText: enabled ? "black" : "#787878"
+                                text: qsTr("Dead links: %1").arg(thumbsModel.brokenShortcutsCount)
+                                onClicked: {
+                                    brokenShortcutsDialog.start(
+                                        thumbsModel.brokenShortcutPaths(),
+                                        thumbsModel.brokenTargetNames(),
+                                        foldersModel.getAllFolderPaths()
+                                    )
+                                }
+                            }
+                        }
                     }
 
                     Label {
@@ -197,7 +262,7 @@ Window {
                     id: grid
 
                     width: parent.width
-                    height: parent.height - Style.toolboxHeight - (filterRow.visible ? filterRow.height : 0)
+                    height: parent.height - toolboxRow.height - (filterRow.visible ? filterRow.height : 0)
                     clip: true
                     onScrollPositionChanged: browsing.setScrollPos(scrollPosition)
 
@@ -209,6 +274,12 @@ Window {
                             }
                             function onClearSelection() {
                                 grid.currentIndex = -1
+                            }
+                            function onRevealItem(index) {
+                                Qt.callLater(function() {
+                                    grid.currentIndex = index
+                                    grid.positionViewAtIndex(index, GridView.Contain)
+                                })
                             }
                     }
                     onItemClicked: {
@@ -236,6 +307,9 @@ Window {
                     }
                     onMoveToParent: {
                         thumbsModel.moveToParent(index)
+                    }
+                    onGoToOriginal: {
+                        thumbsModel.goToOriginal(index)
                     }
                     onShowInExplorer: {
                         thumbsModel.showInExplorer(index)

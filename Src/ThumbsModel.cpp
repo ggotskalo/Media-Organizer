@@ -1,12 +1,17 @@
 #include "ThumbsModel.h"
 #include "DiskOperations.h"
+#include <QClipboard>
+#include <QDir>
 #include <QFileInfo>
+#include <QGuiApplication>
 #include <QImageReader>
 
 ThumbsModel::ThumbsModel(QObject *parent) : QAbstractListModel(parent)
     , selectedThumbIndex_(-1)
     , filterText_("")
-{    
+{
+    if (QClipboard *clipboard = QGuiApplication::clipboard())
+        connect(clipboard, &QClipboard::dataChanged, this, &ThumbsModel::canPasteChanged);
 }
 
 ThumbsModel::~ThumbsModel()
@@ -27,6 +32,8 @@ void ThumbsModel::listReceived(QStringList dirPath, QList<ThumbData> thumbs, boo
     selectedThumbIndex_ = -1;
     endResetModel();
     updateBrokenShortcutsCount();
+    emit canPasteChanged();
+    revealPendingOriginal();
 }
 
 void ThumbsModel::selectItem(int index) {
@@ -88,6 +95,60 @@ bool ThumbsModel::isFolderIndex(int index) const
     if (index < 0 || index >= filteredThumbs_.size())
         return false;
     return filteredThumbs_.at(index).type == ThumbData::Folder;
+}
+
+int ThumbsModel::realItemIndex(const QString& path) const
+{
+    const QString clean = QDir::cleanPath(path);
+    for (int i = 0; i < filteredThumbs_.size(); ++i) {
+        const ThumbData& td = filteredThumbs_.at(i);
+        if (td.filePath != td.fileShortcutPath)
+            continue;
+        if (QString::compare(QDir::cleanPath(td.filePath), clean, Qt::CaseInsensitive) == 0)
+            return i;
+    }
+    return -1;
+}
+
+void ThumbsModel::revealPendingOriginal()
+{
+    if (pendingRevealPath_.isEmpty())
+        return;
+
+    const QString path = pendingRevealPath_;
+    pendingRevealPath_.clear();
+    const int index = realItemIndex(path);
+    if (index < 0)
+        return;
+
+    selectedThumbIndex_ = index;
+    emit revealItem(index);
+}
+
+void ThumbsModel::goToOriginal(int index)
+{
+    if (index < 0 || index >= filteredThumbs_.size())
+        return;
+
+    const ThumbData item = filteredThumbs_.at(index);
+    const bool isShortcut = item.filePath != item.fileShortcutPath;
+    if (!isShortcut || item.isBrokenShortcut || item.filePath.isEmpty())
+        return;
+
+    const int here = realItemIndex(item.filePath);
+    if (item.type == ThumbData::Folder) {
+        selectItem(here >= 0 ? here : index);
+        return;
+    }
+
+    if (here >= 0) {
+        selectedThumbIndex_ = here;
+        emit revealItem(here);
+        return;
+    }
+
+    pendingRevealPath_ = item.filePath;
+    emit openFolderRequested(QFileInfo(item.filePath).absolutePath());
 }
 
 void ThumbsModel::showInExplorer(int index)

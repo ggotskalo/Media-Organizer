@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <QDesktopServices>
+#include <QFileInfo>
 
 ComponentsMediator::ComponentsMediator(ThumbsProvider& thumbsProvider2,
                                        DirProcessor& dirProcessor2,
@@ -49,6 +50,17 @@ void ComponentsMediator::makeObjectsConnections()
     QObject::connect(&dirProcessor, &DirProcessor::getDirFilesAsyncResponce, &thumbsModel, [this](QStringList dirPathes, QList<ThumbData> sortedDirFiles, bool success, bool allHaveThumbs){
         thumbsModel.listReceived(dirPathes, sortedDirFiles, success);
         restoreScrollPosAndSelectedItemFromNavigation(sortedDirFiles);
+    });
+
+    QObject::connect(&thumbsModel, &ThumbsModel::openFolderRequested, &dirProcessor,
+        [this](QString folderPath) {
+        ThumbData folder;
+        folder.displayName = QFileInfo(folderPath).fileName();
+        folder.filePath = folderPath;
+        folder.fileShortcutPath = folderPath;
+        folder.type = ThumbData::Folder;
+        passCurrentStateToNavigation(folder);
+        dirProcessor.getUnitedDirFilesAsync({folderPath});
     });
 
     //thumbsModel->dirProcessor

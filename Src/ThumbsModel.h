@@ -28,6 +28,7 @@ class ThumbsModel : public QAbstractListModel
      Q_INVOKABLE void removeItem(int index);
      Q_INVOKABLE void moveToParent(int index);
      Q_INVOKABLE bool isFolderIndex(int index) const;
+     Q_INVOKABLE void goToOriginal(int index);
      Q_INVOKABLE void showInExplorer(int index);
      Q_INVOKABLE void showShortcutInExplorer(int index);
      Q_INVOKABLE bool isPictureIndex(int index) const;
@@ -65,6 +66,7 @@ class ThumbsModel : public QAbstractListModel
      int getSelectedThumbIndex() const {return selectedThumbIndex_;}
 
      Q_PROPERTY(QString filterText READ getFilterText WRITE setFilterText NOTIFY filterTextChanged)
+     Q_PROPERTY(bool pasteEnabled READ canPaste NOTIFY canPasteChanged)
      QString getFilterText() const { return filterText_; }
 
      Q_PROPERTY(int brokenShortcutsCount READ brokenShortcutsCount NOTIFY brokenShortcutsCountChanged)
@@ -80,8 +82,11 @@ signals:
     void showItem(int pos, qreal newScrollPosition);
     void clearSelection();
     void filterTextChanged();
+    void canPasteChanged();
     void refreshRequested(QStringList dirPathes);
     void brokenShortcutsCountChanged();
+    void openFolderRequested(QString folderPath);
+    void revealItem(int index);
 
 protected:
      QList<ThumbData> thumbs_;
@@ -90,12 +95,15 @@ protected:
      QHash<QString, int> pathToPosition_;
      QString filterText_;
      QStringList currentDirPathes_;
+     QString pendingRevealPath_;
      int brokenShortcutsCount_ = 0;
      
      void updateFilter();
      bool matchesFilter(const ThumbData& thumb) const;
      void updateBrokenShortcutsCount();
      void removeFilteredIndex(int index);
+     void revealPendingOriginal();
+     int realItemIndex(const QString& path) const;
 };
 
 #endif // THUMBSMODEL_H

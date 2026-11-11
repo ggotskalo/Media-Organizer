@@ -9,6 +9,7 @@ GridView {
     signal itemRightClicked(var index)
     signal removeSelected(var index, var posX, var posY)
     signal moveToParent(var index)
+    signal goToOriginal(var index)
     signal showInExplorer(var index)
     signal showShortcutInExplorer(var index)
     signal cutItem(var index)
@@ -109,6 +110,11 @@ GridView {
             Menu {
                 id: contextMenu
                 MenuItem {
+                    text: qsTr("Go to original")
+                    enabled: model.isShortcut && !model.isBrokenShortcut
+                    onTriggered: goToOriginal(index)
+                }
+                MenuItem {
                     text: qsTr("Show")
                     onTriggered: showInExplorer(index)
                 }
@@ -135,16 +141,6 @@ GridView {
                 MenuItem {
                     text: qsTr("Copy")
                     onTriggered: copyItem(index)
-                }
-                MenuItem {
-                    text: qsTr("Paste")
-                    enabled: thumbsModel.canPaste()
-                    onTriggered: pasteItems()
-                }
-                MenuItem {
-                    text: qsTr("Paste link")
-                    enabled: thumbsModel.canPaste()
-                    onTriggered: pasteLinkItems()
                 }
             }
         }
