@@ -1,3 +1,4 @@
+#include <QDebug>
 #include "ThumbsModel.h"
 #include "DiskOperations.h"
 #include <QClipboard>
@@ -12,6 +13,11 @@ ThumbsModel::ThumbsModel(QObject *parent) : QAbstractListModel(parent)
 {
     if (QClipboard *clipboard = QGuiApplication::clipboard())
         connect(clipboard, &QClipboard::dataChanged, this, &ThumbsModel::canPasteChanged);
+    connect(&copyManager_, &CopyManager::finished, this, [this](const QString&, int pasted) {
+        if (pasted > 0 && currentDirPathes_.size() == 1)
+            emit refreshRequested(currentDirPathes_);
+        emit canPasteChanged();
+    });
 }
 
 ThumbsModel::~ThumbsModel()
@@ -353,9 +359,18 @@ void ThumbsModel::pasteItems()
 {
     if (currentDirPathes_.size() != 1)
         return;
-    QStringList pasted = DiskOperations::pasteFromClipboard(currentDirPathes_.first());
-    if (!pasted.isEmpty())
-        emit refreshRequested(currentDirPathes_);
+    if (copyManager_.isRunning())
+        return;
+    bool isCut = false;
+    const QStringList sources = DiskOperations::clipboardPaths(isCut);
+    copyManager_.start(sources, currentDirPathes_.first(), isCut);
+}
+
+void ThumbsModel::prepareMove(int index)
+{
+    if (index < 0 || index >= filteredThumbs_.size())
+        return;
+    moveHelper_.prepare(filteredThumbs_.at(index).filePath);
 }
 
 void ThumbsModel::pasteLinkItems()

@@ -14,6 +14,7 @@ GridView {
     signal showShortcutInExplorer(var index)
     signal cutItem(var index)
     signal copyItem(var index)
+    signal moveToDrive(var index)
     signal pasteItems()
     signal pasteLinkItems()
 
@@ -132,6 +133,11 @@ GridView {
                 MenuItem {
                     text: qsTr("Move to parent folder")
                     onTriggered: moveToParent(index)
+                }
+                MenuItem {
+                    text: qsTr("Move to...")
+                    enabled: !model.isShortcut
+                    onTriggered: moveToDrive(index)
                 }
                 MenuSeparator {}
                 MenuItem {

@@ -9,14 +9,29 @@ ListView {
         height: Style.favoritesItemHeight
         border.color: "black"
         border.width: 1
-        Text {
-            width: parent.width
-            height: parent.height
-            text: model.name
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
-            wrapMode: Text.WrapAtWordBoundaryOrAnywhere
-            elide: Text.ElideRight
+        Column {
+            anchors.fill: parent
+            anchors.margins: 2
+            spacing: 0
+            Text {
+                width: parent.width
+                height: model.freeSpace !== "" ? parent.height - freeLabel.height : parent.height
+                text: model.name
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+                elide: Text.ElideRight
+            }
+            Text {
+                id: freeLabel
+                width: parent.width
+                visible: model.freeSpace !== ""
+                height: visible ? implicitHeight : 0
+                text: model.freeSpace
+                font.pixelSize: 10
+                color: "#666"
+                horizontalAlignment: Text.AlignHCenter
+            }
         }
         MouseArea {
             acceptedButtons: Qt.LeftButton | Qt.RightButton

@@ -109,6 +109,27 @@ bool DiskOperations::clipboardHasFiles()
     return mimeData && mimeData->hasUrls();
 }
 
+QStringList DiskOperations::clipboardPaths(bool &isCut)
+{
+    QStringList result;
+    isCut = false;
+    const QMimeData* mimeData = QGuiApplication::clipboard()->mimeData();
+    if (!mimeData || !mimeData->hasUrls())
+        return result;
+    const QByteArray dropEffect = mimeData->data("Preferred DropEffect");
+    if (dropEffect.size() >= 1)
+        isCut = (dropEffect.at(0) & 2) != 0;
+    for (const QUrl& url : mimeData->urls())
+        if (url.isLocalFile())
+            result.append(url.toLocalFile());
+    return result;
+}
+
+QString DiskOperations::uniquePath(const QString& destDir, const QString& fileName)
+{
+    return generateUniquePath(destDir, fileName);
+}
+
 bool DiskOperations::copyToBest(const QString& srcPath)
 {
     QFileInfo srcInfo(srcPath);

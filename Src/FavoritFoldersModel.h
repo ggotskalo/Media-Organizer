@@ -14,6 +14,7 @@ class FavoritFoldersModel : public QAbstractListModel
 public:
     enum FolderRoles {
         DisplayName = Qt::UserRole + 1,
+        FreeSpace,
     };
 
     explicit FavoritFoldersModel(QObject *parent = nullptr);
@@ -25,6 +26,7 @@ public:
     QVariant data(const QModelIndex &index, int role) const override;
 
     Q_INVOKABLE void itemClicked(int index);
+    Q_INVOKABLE void refreshFreeSpace();
     Q_INVOKABLE void addFolder(QUrl folder);
     Q_INVOKABLE void removeFolder(int index);
     Q_INVOKABLE void renameFolder(int index, QString newName);

@@ -1,3 +1,4 @@
+#include <QStorageInfo>
 #include "FavoritFoldersModel.h"
 #include <QStandardPaths>
 #include <QDir>
@@ -174,9 +175,16 @@ QStringList FavoritFoldersModel::getAllFolderPaths() const
     return result;
 }
 
+void FavoritFoldersModel::refreshFreeSpace()
+{
+    if (folders_.isEmpty())
+        return;
+    emit dataChanged(index(0), index(folders_.size() - 1), {FreeSpace});
+}
+
 QHash<int, QByteArray> FavoritFoldersModel::roleNames() const
 {
-    return {{DisplayName, "name"}};
+    return {{DisplayName, "name"}, {FreeSpace, "freeSpace"}};
 }
 
 int FavoritFoldersModel::rowCount(const QModelIndex &parent) const
@@ -191,6 +199,19 @@ QVariant FavoritFoldersModel::data(const QModelIndex &index, int role) const
     switch (role) {
         case DisplayName:
             return folders_.at(index.row()).displayName;
+        case FreeSpace: {
+            // only for single-path favorites
+            const QStringList& pathes = folders_.at(index.row()).pathes;
+            if (pathes.size() != 1)
+                return QString();
+            const QStorageInfo storage(pathes.first());
+            if (!storage.isValid() || !storage.isReady() || storage.bytesAvailable() < 0)
+                return QString();
+            const double gb = storage.bytesAvailable() / (1024.0 * 1024.0 * 1024.0);
+            if (gb >= 1024.0)
+                return tr("%1 TB free").arg(gb / 1024.0, 0, 'f', 2);
+            return tr("%1 GB free").arg(gb, 0, 'f', gb >= 100 ? 0 : 1);
+        }
     }
     return QVariant();
 }

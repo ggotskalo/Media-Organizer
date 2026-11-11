@@ -5,6 +5,8 @@
 
 #include "ThumbData.h"
 #include "DirProcessor.h"
+#include "CopyManager.h"
+#include "MoveHelper.h"
 
 class ThumbsModel : public QAbstractListModel
  {
@@ -66,6 +68,11 @@ class ThumbsModel : public QAbstractListModel
      int getSelectedThumbIndex() const {return selectedThumbIndex_;}
 
      Q_PROPERTY(QString filterText READ getFilterText WRITE setFilterText NOTIFY filterTextChanged)
+     Q_PROPERTY(MoveHelper* moveHelper READ moveHelper CONSTANT)
+     MoveHelper* moveHelper() { return &moveHelper_; }
+     Q_INVOKABLE void prepareMove(int index);
+     Q_PROPERTY(CopyManager* copyManager READ copyManager CONSTANT)
+     CopyManager* copyManager() { return &copyManager_; }
      Q_PROPERTY(bool pasteEnabled READ canPaste NOTIFY canPasteChanged)
      QString getFilterText() const { return filterText_; }
 
@@ -96,6 +103,8 @@ protected:
      QString filterText_;
      QStringList currentDirPathes_;
      QString pendingRevealPath_;
+     CopyManager copyManager_;
+     MoveHelper moveHelper_{&copyManager_};
      int brokenShortcutsCount_ = 0;
      
      void updateFilter();

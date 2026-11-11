@@ -16,6 +16,8 @@ public:
     static QStringList pasteFromClipboard(const QString& destDir);
     static QStringList pasteLinkFromClipboard(const QString& destDir);
     static bool clipboardHasFiles();
+    static QStringList clipboardPaths(bool &isCut);
+    static QString uniquePath(const QString& destDir, const QString& fileName);
     static bool copyToBest(const QString& srcPath);
 
 private:

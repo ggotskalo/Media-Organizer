@@ -8,6 +8,8 @@
         <file>qmldir</file>
         <file>BigToolButton.qml</file>
         <file>BrokenShortcutsDialog.qml</file>
+        <file>CopyProgressDialog.qml</file>
+        <file>MoveToDialog.qml</file>
         <file>DuplicatesDialog.qml</file>
         <file>ImageViewerDialog.qml</file>
     </qresource>

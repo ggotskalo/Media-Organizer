@@ -320,6 +320,10 @@ Window {
                     onCutItem: {
                         thumbsModel.cutItem(index)
                     }
+                    onMoveToDrive: {
+                        thumbsModel.prepareMove(index)
+                        moveToDialog.show()
+                    }
                     onCopyItem: {
                         thumbsModel.copyItem(index)
                     }
@@ -424,6 +428,23 @@ Window {
     Platform.FolderDialog {
         id: addFolderDialog
         onAccepted: foldersModel.addFolder(folder)
+    }
+
+    MoveToDialog {
+        id: moveToDialog
+        helper: thumbsModel.moveHelper
+    }
+
+    CopyProgressDialog {
+        manager: thumbsModel.copyManager
+    }
+
+    Connections {
+        target: thumbsModel.copyManager
+        function onRunningChanged() {
+            if (!thumbsModel.copyManager.running)
+                foldersModel.refreshFreeSpace()
+        }
     }
 
     BrokenShortcutsDialog {
