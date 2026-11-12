@@ -36,6 +36,8 @@ public:
     Q_INVOKABLE bool removePathFromFolder(int index, QString path);
     
     QList<FavoriteFolderData> getAllFolders() const { return folders_; }
+    // path lists of folders united from several paths
+    QList<QStringList> unitedFolderPathes() const;
     Q_INVOKABLE QStringList getAllFolderPaths() const;
 
 signals:

@@ -29,7 +29,8 @@ public:
     bool calculating() const { return calculating_; }
     QVariantList targets() const { return targets_; }
 
-    Q_INVOKABLE void prepare(const QString &path);
+    // srcRoots[i] -> destRoots[i]: the item lies in srcRoots[i], it can be moved to destRoots[i]
+    void prepare(const QString &path, const QStringList &srcRoots, const QStringList &destRoots);
     Q_INVOKABLE void cancel();
     Q_INVOKABLE bool move(int targetIndex);
 
@@ -44,6 +45,8 @@ private:
 
     CopyManager *copyManager_;
     QString sourcePath_;
+    QStringList srcRoots_;
+    QStringList destRoots_;
     qint64 size_ = 0;
     bool calculating_ = false;
     quint64 token_ = 0;

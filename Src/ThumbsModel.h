@@ -75,6 +75,8 @@ class ThumbsModel : public QAbstractListModel
      Q_PROPERTY(MoveHelper* moveHelper READ moveHelper CONSTANT)
      MoveHelper* moveHelper() { return &moveHelper_; }
      Q_INVOKABLE void prepareMove(int index);
+     Q_INVOKABLE bool canMoveTo(int index) const;
+     void setUnitedFolders(const QList<QStringList>& united) { unitedFolders_ = united; }
      Q_PROPERTY(CopyManager* copyManager READ copyManager CONSTANT)
      CopyManager* copyManager() { return &copyManager_; }
      Q_PROPERTY(bool pasteEnabled READ canPaste NOTIFY canPasteChanged)
@@ -112,6 +114,7 @@ protected:
      QString filterText_;
      QStringList currentDirPathes_;
      QString pendingRevealPath_;
+     QList<QStringList> unitedFolders_;
      CopyManager copyManager_;
      MoveHelper moveHelper_{&copyManager_};
      int brokenShortcutsCount_ = 0;

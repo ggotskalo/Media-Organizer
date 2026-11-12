@@ -35,7 +35,7 @@ Window {
 
         Label {
             visible: helper !== null && helper.targets.length === 0
-            text: qsTr("No other drives available")
+            text: qsTr("No other folders in this united folder")
             color: "#666"
         }
 

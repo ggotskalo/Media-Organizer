@@ -4,6 +4,7 @@
 #include <QDir>
 #include <QDirIterator>
 #include <QFileInfo>
+#include <QSet>
 #include <QStorageInfo>
 #include <QThread>
 #include <QVariantMap>
@@ -54,9 +55,11 @@ QString MoveHelper::sizeText() const
     return calculating_ ? tr("calculating...") : formatBytes(size_);
 }
 
-void MoveHelper::prepare(const QString &path)
+void MoveHelper::prepare(const QString &path, const QStringList &srcRoots, const QStringList &destRoots)
 {
     cancel();
+    srcRoots_ = srcRoots;
+    destRoots_ = destRoots;
     sourcePath_ = QDir::fromNativeSeparators(QFileInfo(path).absoluteFilePath());
     size_ = 0;
     calculating_ = true;
@@ -101,34 +104,31 @@ void MoveHelper::rebuildTargets()
     if (sourcePath_.isEmpty())
         return;
 
-    const QStorageInfo srcVolume(sourcePath_);
-    const QString srcRoot = QDir::fromNativeSeparators(srcVolume.rootPath());
-    if (!srcVolume.isValid() || srcRoot.isEmpty())
-        return;
-    const QString relative = QDir(srcRoot).relativeFilePath(sourcePath_);
-    // top-level folder of the path, it must already exist on the target drive
-    const QString topFolder = relative.section('/', 0, 0);
-    if (topFolder.isEmpty() || topFolder == "." || topFolder == "..")
-        return;
-
-    for (const QStorageInfo &volume : QStorageInfo::mountedVolumes()) {
-        const QString root = QDir::fromNativeSeparators(volume.rootPath());
-        if (!volume.isValid() || !volume.isReady() || volume.isReadOnly()
-            || root.compare(srcRoot, Qt::CaseInsensitive) == 0)
+    QSet<QString> seen;
+    for (int i = 0; i < destRoots_.size() && i < srcRoots_.size(); ++i) {
+        const QString srcRoot = QDir::fromNativeSeparators(srcRoots_.at(i));
+        const QString destRoot = QDir::fromNativeSeparators(destRoots_.at(i));
+        if (!QFileInfo(destRoot).isDir())
             continue;
 
-        if (!QFileInfo(QDir(root).absoluteFilePath(topFolder)).isDir())
-            continue;
-
-        const QString destPath = QDir(root).absoluteFilePath(relative);
+        const QString relative = QDir(srcRoot).relativeFilePath(sourcePath_);
+        const QString destPath = QDir(destRoot).absoluteFilePath(relative);
         const QString destDir = QFileInfo(destPath).absolutePath();
+        if (seen.contains(destPath.toLower()))
+            continue;
+        seen.insert(destPath.toLower());
+
+        const QStorageInfo volume(destRoot);
+        const bool sameVolume = QStorageInfo(srcRoot) == volume;
         const qint64 free = volume.bytesAvailable();
 
         bool enabled = false;
         QString note;
-        if (calculating_) {
+        if (!volume.isValid() || !volume.isReady() || volume.isReadOnly()) {
+            note = tr("drive is not available");
+        } else if (calculating_) {
             note = tr("calculating size...");
-        } else if (free < size_) {
+        } else if (!sameVolume && free < size_) {
             note = tr("not enough space (need %1 more)").arg(formatBytes(size_ - free));
         } else {
             enabled = true;
@@ -140,7 +140,7 @@ void MoveHelper::rebuildTargets()
         }
 
         QVariantMap t;
-        t["drive"] = QDir::toNativeSeparators(root);
+        t["drive"] = QDir::toNativeSeparators(destRoot);
         t["label"] = volume.displayName();
         t["destPath"] = QDir::toNativeSeparators(destPath);
         t["destDir"] = destDir;

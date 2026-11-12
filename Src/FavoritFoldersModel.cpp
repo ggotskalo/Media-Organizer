@@ -175,6 +175,16 @@ QStringList FavoritFoldersModel::getAllFolderPaths() const
     return result;
 }
 
+QList<QStringList> FavoritFoldersModel::unitedFolderPathes() const
+{
+    QList<QStringList> result;
+    for (const FavoriteFolderData& ffd : folders_) {
+        if (ffd.pathes.size() > 1)
+            result.append(ffd.pathes);
+    }
+    return result;
+}
+
 void FavoritFoldersModel::refreshFreeSpace()
 {
     if (folders_.isEmpty())

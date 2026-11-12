@@ -110,6 +110,7 @@ GridView {
             }
             Menu {
                 id: contextMenu
+                onAboutToShow: moveToItem.enabled = thumbsModel.canMoveTo(index)
                 MenuItem {
                     text: qsTr("Go to original")
                     enabled: model.isShortcut && !model.isBrokenShortcut
@@ -135,8 +136,8 @@ GridView {
                     onTriggered: moveToParent(index)
                 }
                 MenuItem {
+                    id: moveToItem
                     text: qsTr("Move to...")
-                    enabled: !model.isShortcut
                     onTriggered: moveToDrive(index)
                 }
                 MenuSeparator {}

@@ -425,11 +425,49 @@ void ThumbsModel::pasteItems()
     copyManager_.start(sources, currentDirPathes_.first(), isCut);
 }
 
+// For an item lying inside a united folder: pairs of (root that contains it, other root of the same united folder)
+static void moveCandidates(const QString& itemPath, const QList<QStringList>& united,
+                           QStringList& srcRoots, QStringList& destRoots)
+{
+    const QString item = QDir::cleanPath(itemPath);
+    for (const QStringList& paths : united) {
+        for (const QString& root : paths) {
+            QString r = QDir::cleanPath(root);
+            if (!r.endsWith('/'))
+                r += '/';
+            if (!item.startsWith(r, Qt::CaseInsensitive) || item.size() <= r.size())
+                continue;
+            for (const QString& other : paths) {
+                if (QString::compare(QDir::cleanPath(other), QDir::cleanPath(root), Qt::CaseInsensitive) != 0) {
+                    srcRoots.append(QDir::cleanPath(root));
+                    destRoots.append(QDir::cleanPath(other));
+                }
+            }
+            break;
+        }
+    }
+}
+
+bool ThumbsModel::canMoveTo(int index) const
+{
+    if (index < 0 || index >= filteredThumbs_.size())
+        return false;
+    const ThumbData& td = filteredThumbs_.at(index);
+    if (td.filePath != td.fileShortcutPath || td.isBrokenShortcut)
+        return false;
+    QStringList src, dest;
+    moveCandidates(td.filePath, unitedFolders_, src, dest);
+    return !dest.isEmpty();
+}
+
 void ThumbsModel::prepareMove(int index)
 {
     if (index < 0 || index >= filteredThumbs_.size())
         return;
-    moveHelper_.prepare(filteredThumbs_.at(index).filePath);
+    const QString path = filteredThumbs_.at(index).filePath;
+    QStringList src, dest;
+    moveCandidates(path, unitedFolders_, src, dest);
+    moveHelper_.prepare(path, src, dest);
 }
 
 void ThumbsModel::pasteLinkItems()

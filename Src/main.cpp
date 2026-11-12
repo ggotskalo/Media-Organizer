@@ -67,6 +67,12 @@ int main(int argc, char *argv[])
         fileIndexer.indexFolders(foldersModel.getAllFolders());
     });
     
+    // "Move to..." works inside united folders
+    thumbsModel.setUnitedFolders(foldersModel.unitedFolderPathes());
+    QObject::connect(&foldersModel, &FavoritFoldersModel::foldersChanged, [&]() {
+        thumbsModel.setUnitedFolders(foldersModel.unitedFolderPathes());
+    });
+
     // search results are shown in the usual thumbnails grid
     QObject::connect(&fileSearcher, &FileSearcher::searchStarted, &thumbsModel, [&]() {
         dirProcessor.cancel();
